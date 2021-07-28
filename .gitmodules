@@ -1,0 +1,3 @@
+[submodule "bin"]
+	path = bin
+	url = git@git.granjow.net:escape/fmod-api.git
