@@ -1,0 +1,18 @@
+build:
+  image: gcc:11.2.0
+  tags:
+    - raspberry
+  variables:
+    CPU: arm
+    CONFIG: Debug
+    GIT_SUBMODULE_STRATEGY: normal
+  script:
+    - apt update
+    - apt install -y cmake
+    - mkdir build
+    - cd build
+    - cmake .. -DCPU=arm
+    - make
+  artifacts:
+    paths:
+      - dist
