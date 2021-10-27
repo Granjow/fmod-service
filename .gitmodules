@@ -1,6 +1,6 @@
 [submodule "resources/fmod-api"]
 	path = resources/fmod-api
-	url = git@git.granjow.net:../fmod-api.git
+	url = ../fmod-api.git
 [submodule "lib/cppzmq"]
 	path = lib/cppzmq
 	url = https://github.com/zeromq/cppzmq.git
