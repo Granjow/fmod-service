@@ -4,6 +4,8 @@
 #include "unix-server.h"
 
 #include <string>
+#include <map>
+#include <list>
 
 #include "fmod_studio.hpp"
 
@@ -14,27 +16,27 @@ public:
 
     ~FmodServer();
 
+    std::string loadBank(const std::string &bankPath);
+
+    std::string startEvent(const std::string &eventId);
+
+    std::string stopEvent(const std::string &eventId);
+
+    std::string playEvent(const std::string &eventId);
+
+    bool isPlaying(const std::string &eventId);
+
+    FMOD::Studio::EventDescription *loadEventDescription(const std::__cxx11::basic_string<char> &eventId);
+
 protected:
     virtual std::string process_request(std::string request);
 
 private:
     FMOD::Studio::System *system;
-    FMOD::Studio::Bank *masterBank;
-    FMOD::Studio::Bank *stringsBank;
 
-    FMOD::Studio::EventDescription *dropsDescription;
-    FMOD::Studio::EventDescription *countdownDescription;
-    FMOD::Studio::EventDescription *streamDescription;
-
-    FMOD::Studio::EventDescription *woodenHatchDescription;
-    FMOD::Studio::EventDescription *pillarDescription;
-    FMOD::Studio::EventDescription *explosionDescription;
-    FMOD::Studio::EventDescription *caveInDescription;
-    FMOD::Studio::EventDescription *gameOverDescription;
-
-    FMOD::Studio::EventInstance *dropsInstance;
-    FMOD::Studio::EventInstance *streamInstance;
-    FMOD::Studio::EventInstance *countdownInstance;
+    std::list<FMOD::Studio::Bank *> _banks;
+    std::map<std::string, FMOD::Studio::EventDescription *> _eventDescriptionsById;
+    std::map<std::string, FMOD::Studio::EventInstance *> _eventInstancesById;
 
     /**
      * Play a one-shot event

@@ -1,5 +1,6 @@
 #include "fmod-server.h"
 #include <iostream>
+#include <sstream>
 
 #include "fmod_studio.hpp"
 #include "fmod.hpp"
@@ -7,92 +8,128 @@
 
 FmodServer::FmodServer() {
 
-    void *extraDriverData = NULL;
+    void *extraDriverData = nullptr;
 
-    system = NULL;
+    system = nullptr;
     ERRCHECK(FMOD::Studio::System::create(&system));
 
     // The example Studio project is authored for 5.1 sound, so set up the system output mode to match
-    FMOD::System *coreSystem = NULL;
+    FMOD::System *coreSystem = nullptr;
     ERRCHECK(system->getCoreSystem(&coreSystem));
     ERRCHECK(coreSystem->setSoftwareFormat(12000, FMOD_SPEAKERMODE_7POINT1, 0));
 
     ERRCHECK(system->initialize(1024, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, extraDriverData));
 
-    masterBank = NULL;
-    ERRCHECK(system->loadBankFile("media/fmod-banks/Master.bank", FMOD_STUDIO_LOAD_BANK_NORMAL, &masterBank));
-
-    stringsBank = NULL;
-    ERRCHECK(system->loadBankFile("media/fmod-banks/Master.strings.bank", FMOD_STUDIO_LOAD_BANK_NORMAL, &stringsBank));
-
-    int eventCount;
-    masterBank->getEventCount(&eventCount);
-
-    std::cout << "Found " << eventCount << " events." << std::endl << std::flush;
-
-    // [s] = Single Event, [c] = Continuous
-    // [s] Explosion/Explosion
-    // [c] Wasser/Tropfen
-    // [c] Wasser/Bach
-    // [s] Säule/Fahrt
-    // [c] Countdown/Steine
-    // [s] Verschütten/Verschütten
-    // [s] Verschütten/GameOver
-
-    dropsDescription = NULL;
-    ERRCHECK(system->getEvent("event:/Wasser/Tropfen", &dropsDescription));
-
-    explosionDescription = NULL;
-    ERRCHECK(system->getEvent("event:/Explosion/Explosion", &explosionDescription));
-
-    streamDescription = NULL;
-    ERRCHECK(system->getEvent("event:/Wasser/Bach", &streamDescription));
-
-    woodenHatchDescription = NULL;
-    ERRCHECK(system->getEvent("event:/Luke/Auf", &woodenHatchDescription));
-
-    pillarDescription = NULL;
-    ERRCHECK(system->getEvent("event:/Säule/Fahrt", &pillarDescription));
-
-    countdownDescription = NULL;
-    ERRCHECK(system->getEvent("event:/Countdown/Steine", &countdownDescription));
-
-    caveInDescription = NULL;
-    ERRCHECK(system->getEvent("event:/Verschütten/Verschütten", &caveInDescription));
-
-    gameOverDescription = NULL;
-    ERRCHECK(system->getEvent("event:/Verschütten/GameOver", &gameOverDescription));
-
-    dropsInstance = NULL;
-    ERRCHECK(dropsDescription->createInstance(&dropsInstance));
-
-    streamInstance = NULL;
-    ERRCHECK(streamDescription->createInstance(&streamInstance));
-
-    countdownInstance = NULL;
-    ERRCHECK(countdownDescription->createInstance(&countdownInstance));
-
-    // Start loading explosion sample data and keep it in memory
-    ERRCHECK(explosionDescription->loadSampleData());
-    ERRCHECK(dropsDescription->loadSampleData());
-    ERRCHECK(caveInDescription->loadSampleData());
-    ERRCHECK(gameOverDescription->loadSampleData());
-    ERRCHECK(countdownDescription->loadSampleData());
-    ERRCHECK(streamDescription->loadSampleData());
-    ERRCHECK(pillarDescription->loadSampleData());
-    ERRCHECK(woodenHatchDescription->loadSampleData());
-
-    ERRCHECK(dropsInstance->start());
     ERRCHECK(system->update());
 
     std::cout << "FMOD should now be initialised." << std::endl << std::flush;
 }
 
 FmodServer::~FmodServer() {
-    ERRCHECK(stringsBank->unload());
-    ERRCHECK(masterBank->unload());
-
     ERRCHECK(system->release());
+
+    for (auto &bank: _banks) {
+        ERRCHECK(bank->unload());
+    }
+}
+
+std::string FmodServer::loadBank(const std::string &bankPath) {
+    FMOD::Studio::Bank *bank;
+    auto result = system->loadBankFile(bankPath.c_str(), FMOD_STUDIO_LOAD_BANK_NORMAL, &bank);
+    ERRCHECK(result);
+
+    if (result != FMOD_OK) {
+        std::stringstream msg;
+        msg << "Error loading bank " << bankPath << ". FMOD return code: " << result << std::endl;
+        return msg.str();
+    }
+
+    _banks.push_back(bank);
+
+    int eventCount;
+    bank->getEventCount(&eventCount);
+    std::cout << "Found " << eventCount << " events in bank " << bankPath << "." << std::endl << std::flush;
+
+    return "OK";
+}
+
+std::string FmodServer::playEvent(const std::string &eventId) {
+    auto eventDescription = loadEventDescription(eventId);
+    FMOD::Studio::EventInstance *eventInstance = nullptr;
+
+    std::cout << "Event: Playing " << eventId << std::endl;
+
+    ERRCHECK(eventDescription->createInstance(&eventInstance));
+
+    // Start it right now (system->update() still needs to be called!)
+    ERRCHECK(eventInstance->start());
+
+    // Release will clean up the instance when it completes
+    ERRCHECK(eventInstance->release());
+
+    return "OK";
+}
+
+std::string FmodServer::startEvent(const std::string &eventId) {
+    FMOD::Studio::EventInstance *eventInstance = nullptr;
+
+    auto instance = _eventInstancesById.find(eventId);
+    if (instance == _eventInstancesById.end()) {
+        auto eventDescription = loadEventDescription(eventId);
+
+
+        ERRCHECK(eventDescription->createInstance(&eventInstance));
+    } else {
+        eventInstance = instance->second;
+    }
+
+    if (isPlaying(eventId)) {
+        return "Already playing";
+    } else {
+        // Start it right now (system->update() still needs to be called!)
+        ERRCHECK(eventInstance->start());
+        return "OK";
+    }
+}
+
+std::string FmodServer::stopEvent(const std::string &eventId) {
+    auto instance = _eventInstancesById.find(eventId);
+    if (instance == _eventInstancesById.end()) {
+        std::cout << "Event: Stopping " << eventId << std::endl;
+        auto result = instance->second->stop(FMOD_STUDIO_STOP_MODE::FMOD_STUDIO_STOP_ALLOWFADEOUT);
+        ERRCHECK(result);
+
+        if (result != FMOD_OK) {
+            return "Could not stop event";
+        } else {
+            return "OK";
+        }
+    } else {
+        return "Event not running or does not exist";
+    }
+}
+
+FMOD::Studio::EventDescription *FmodServer::loadEventDescription(const string &eventId) {
+    auto description = _eventDescriptionsById.find(eventId);
+    if (description == _eventDescriptionsById.end()) {
+
+        FMOD::Studio::EventDescription *eventDescription;
+        auto result = system->getEvent(eventId.c_str(), &eventDescription);
+        ERRCHECK(result);
+
+        if (result != FMOD_OK) {
+            throw runtime_error("Could not load event");
+        } else {
+            _eventDescriptionsById.insert({eventId, eventDescription});
+
+            // Start loading explosion sample data and keep it in memory
+            ERRCHECK(eventDescription->loadSampleData());
+
+            return eventDescription;
+        }
+    }
+
+    return description->second;
 }
 
 std::string FmodServer::process_request(std::string raw_request) {
@@ -107,27 +144,7 @@ std::string FmodServer::process_request(std::string raw_request) {
 
     string response = "OK\n";
     if (request == "stop:drops") {
-        stop_event(dropsInstance, "Drops");
-    } else if (request == "start:drops") {
-        start_event(dropsInstance, "Drops");
-    } else if (request == "start:countdown") {
-        start_event(countdownInstance, "Countdown");
-    } else if (request == "stop:countdown") {
-        stop_event(countdownInstance, "Countdown");
-    } else if (request == "start:stream") {
-        start_event(streamInstance, "Stream");
-    } else if (request == "stop:stream") {
-        stop_event(streamInstance, "Stream");
-    } else if (request == "play:explosion") {
-        play_event(explosionDescription, "Explosion");
-    } else if (request == "play:wooden-hatch") {
-        play_event(woodenHatchDescription, "Wooden Hinch");
-    } else if (request == "play:pillar") {
-        play_event(pillarDescription, "Pillar");
-    } else if (request == "play:cave-in") {
-        play_event(caveInDescription, "Cave-in");
-    } else if (request == "play:game-over") {
-        play_event(gameOverDescription, "Game Over");
+        // TODO do stuff
     } else {
         std::cout << "Unknown request: >>" << request << "<<" << std::endl;
         response = "ERROR: Unknown request\n";
@@ -141,42 +158,18 @@ std::string FmodServer::process_request(std::string raw_request) {
     return response;
 }
 
-void FmodServer::play_event(FMOD::Studio::EventDescription *eventDescription, std::string what) {
-
-    std::cout << "Event: Playing " << what << std::endl;
-
-    FMOD::Studio::EventInstance *eventInstance = NULL;
-    ERRCHECK(eventDescription->createInstance(&eventInstance));
-
-    // Start it right now (system->update() still needs to be called!)
-    ERRCHECK(eventInstance->start());
-
-    // Release will clean up the instance when it completes
-    ERRCHECK(eventInstance->release());
-}
-
-void FmodServer::start_event(FMOD::Studio::EventInstance *eventInstance, std::string what) {
-    bool playing = is_playing(eventInstance);
-    if (playing) {
-        std::cout << "Event " << what << " already playing." << std::endl << std::flush;
-    } else {
-        std::cout << "Event " << what << " not playing yet, starting" << std::endl << std::flush;
-        ERRCHECK(eventInstance->start());
-    }
-}
-
-void FmodServer::stop_event(FMOD::Studio::EventInstance *eventInstance, std::string what) {
-    std::cout << "Event: Stopping " << what << std::endl;
-    ERRCHECK(eventInstance->stop(FMOD_STUDIO_STOP_MODE::FMOD_STUDIO_STOP_ALLOWFADEOUT));
-}
-
-bool FmodServer::is_playing(FMOD::Studio::EventInstance *eventInstance) {
+bool FmodServer::isPlaying(const std::string &eventId) {
     FMOD_STUDIO_PLAYBACK_STATE state;
-    ERRCHECK(eventInstance->getPlaybackState(&state));
-    bool isPlaying = state == FMOD_STUDIO_PLAYBACK_PLAYING;
-    std::cout << "Playback state: " << state << ", " << (isPlaying ? "playing" : "not playing") << std::endl
-              << std::flush;
-    return isPlaying;
+    auto instance = _eventInstancesById.find(eventId);
+    if (instance != _eventInstancesById.end()) {
+        ERRCHECK(instance->second->getPlaybackState(&state));
+        bool isPlaying = state == FMOD_STUDIO_PLAYBACK_PLAYING;
+        std::cout << "Playback state of " << eventId << ": " << state << ", " << (isPlaying ? "playing" : "not playing")
+                  << std::endl
+                  << std::flush;
+        return isPlaying;
+    }
+    return false;
 }
 
 int main() {

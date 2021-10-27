@@ -9,6 +9,8 @@ set(FMOD_VERSION "20203")
 set(FLAGS "")
 set(SUFFIX "")
 
+set(CMAKE_CXX_STANDARD 14)
+
 if (${CPU} STREQUAL x86_64)
     message(STATUS "Compiling for x86_64")
     set(FLAGS "${FLAGS} -m64")
