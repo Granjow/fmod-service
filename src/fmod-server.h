@@ -16,23 +16,13 @@ public:
 
     ~FmodServer();
 
-    std::string loadBank(const std::string &bankPath);
-
-    std::string startEvent(const std::string &eventId);
-
-    std::string stopEvent(const std::string &eventId);
-
-    std::string playEvent(const std::string &eventId);
-
-    bool isPlaying(const std::string &eventId);
-
-    FMOD::Studio::EventDescription *loadEventDescription(const std::__cxx11::basic_string<char> &eventId);
-
 protected:
     virtual std::string process_request(std::string request);
 
 private:
     FMOD::Studio::System *system;
+
+    FMOD::Studio::EventDescription *loadEventDescription(const std::string &eventId);
 
     std::list<FMOD::Studio::Bank *> _banks;
     std::map<std::string, FMOD::Studio::EventDescription *> _eventDescriptionsById;

@@ -7,8 +7,8 @@ build:
     CONFIG: Debug
     GIT_SUBMODULE_STRATEGY: normal
   script:
-    - apt update
-    - apt install -y cmake
+    - apt-get update
+    - apt-get install -y cmake
     - mkdir build
     - cd build
     - cmake .. -DCPU=arm

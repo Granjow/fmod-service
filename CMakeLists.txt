@@ -63,6 +63,12 @@ set(CAVE-SOUND-ZMQ-SOURCES
         ${FMOD}/studio/examples/common.cpp
         ${FMOD}/studio/examples/common_platform.cpp
         )
+set(FMOD-SERVICE-SOURCES
+        src/fmod-controller.cpp
+        src/ZmqApi.cpp
+        ${FMOD}/studio/examples/common.cpp
+        ${FMOD}/studio/examples/common_platform.cpp
+        )
 SET(FMOD_INCLUDES
         ${FMOD}/core/inc
         ${FMOD}/studio/inc
@@ -90,6 +96,14 @@ target_link_libraries(tcp-receiver zmq)
 add_executable(cave-sound-zmq ${CAVE-SOUND-ZMQ-SOURCES})
 target_include_directories(cave-sound-zmq PUBLIC ${FMOD}/core/inc)
 target_link_libraries(cave-sound-zmq
+        ${FMOD_LIBRARIES}
+        Threads::Threads
+        zmq
+        )
+
+add_executable(fmod-service ${FMOD-SERVICE-SOURCES})
+target_include_directories(fmod-service PUBLIC ${FMOD}/core/inc)
+target_link_libraries(fmod-service
         ${FMOD_LIBRARIES}
         Threads::Threads
         zmq
