@@ -1,6 +1,5 @@
 #include "fmod-controller.h"
 
-#include "fmod-server.h"
 #include <iostream>
 #include <sstream>
 
@@ -66,7 +65,11 @@ std::string FmodController::playEvent(const std::string &eventId) {
 
     std::cout << "Event: Playing " << eventId << std::endl;
 
-    ERRCHECK(eventDescription->createInstance(&eventInstance));
+    FMOD_RESULT result;
+    result = eventDescription->createInstance(&eventInstance);
+    if (result != FMOD_OK) {
+        throw std::runtime_error("Cannot create event instance.");
+    }
 
     // Start it right now (system->update() still needs to be called!)
     ERRCHECK(eventInstance->start());
@@ -106,33 +109,35 @@ std::string FmodController::stopEvent(const std::string &eventId) {
     if (instance == _eventInstancesById.end()) {
         std::cout << "Event: Stopping " << eventId << std::endl;
         auto result = instance->second->stop(FMOD_STUDIO_STOP_MODE::FMOD_STUDIO_STOP_ALLOWFADEOUT);
-        ERRCHECK(result);
 
         if (result != FMOD_OK) {
-            return "Could not stop event";
-        } else {
-            return "OK";
+            throw std::runtime_error("Could not stop event");
         }
+
+        return "OK";
     } else {
         return "Event not running or does not exist";
     }
 }
 
-FMOD::Studio::EventDescription *FmodController::loadEventDescription(const string &eventId) {
+FMOD::Studio::EventDescription *FmodController::loadEventDescription(const std::string &eventId) {
     auto description = _eventDescriptionsById.find(eventId);
     if (description == _eventDescriptionsById.end()) {
 
         FMOD::Studio::EventDescription *eventDescription;
         auto result = system->getEvent(eventId.c_str(), &eventDescription);
-        ERRCHECK(result);
 
         if (result != FMOD_OK) {
-            throw runtime_error("Could not load event");
+            throw std::runtime_error("Could not load event");
         } else {
             _eventDescriptionsById.insert({eventId, eventDescription});
 
             // Start loading explosion sample data and keep it in memory
-            ERRCHECK(eventDescription->loadSampleData());
+            result = eventDescription->loadSampleData();
+
+            if (result != FMOD_OK) {
+                throw std::runtime_error("Could not load sample data");
+            }
 
             return eventDescription;
         }

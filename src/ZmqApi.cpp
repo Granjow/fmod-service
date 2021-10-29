@@ -28,17 +28,25 @@ std::string ZmqApi::process_request(std::string raw_request) {
         std::string value = request.substr(pos + 1);
         std::cout << "Request: key=" << key << ", value=" << value << std::endl;
 
-        if (key == "get" && value == "id") {
-            std::ostringstream stream;
-            stream << "ID=" << startedAt;
-            response = stream.str();
-        } else if (key == "load-bank") {
-            auto result = fmodController.loadBank(value);
-            response = result;
-        } else if (key == "play-event") {
-            response = fmodController.playEvent(value);
-        } else {
-            response = "Error: Unknown key";
+        try {
+            if (key == "get" && value == "id") {
+                std::ostringstream stream;
+                stream << "ID=" << startedAt;
+                response = stream.str();
+            } else if (key == "load-bank") {
+                auto result = fmodController.loadBank(value);
+                response = result;
+            } else if (key == "play-event") {
+                response = fmodController.playEvent(value);
+            } else if (key == "start-event") {
+                response = fmodController.startEvent(value);
+            } else if (key == "stop-event") {
+                response = fmodController.stopEvent(value);
+            } else {
+                response = "Error: Unknown key";
+            }
+        } catch (std::runtime_error &err){
+            response = err.what();
         }
 
     } else {
