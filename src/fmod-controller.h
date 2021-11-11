@@ -25,6 +25,9 @@ public:
 
 
 private:
+    static void checkFmodResult(FMOD_RESULT result);
+    static void checkFmodResultNothrow(FMOD_RESULT result);
+
     FMOD::Studio::System *system;
 
     FMOD::Studio::EventDescription *loadEventDescription(const std::string &eventId);

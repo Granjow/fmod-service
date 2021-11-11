@@ -5,6 +5,7 @@
 #include "common.h"
 
 #include "ZmqApi.h"
+#include "FmodException.h"
 
 ZmqApi::ZmqApi()
         : startedAt(std::time(nullptr)) {
@@ -45,7 +46,7 @@ std::string ZmqApi::process_request(std::string raw_request) {
             } else {
                 response = "Error: Unknown key";
             }
-        } catch (std::runtime_error &err){
+        } catch (FmodException &err){
             response = err.what();
         }
 

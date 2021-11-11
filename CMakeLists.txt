@@ -65,6 +65,7 @@ set(CAVE-SOUND-ZMQ-SOURCES
         )
 set(FMOD-SERVICE-SOURCES
         src/fmod-controller.cpp
+        src/FmodException.cpp
         src/ZmqApi.cpp
         ${FMOD}/studio/examples/common.cpp
         ${FMOD}/studio/examples/common_platform.cpp
