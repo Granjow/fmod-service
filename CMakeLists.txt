@@ -46,25 +46,8 @@ endif ()
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-set(CAVE-SOUND-SOURCES
-        src/fmod-server.cc
-        src/unix-server.cc
-        src/server.cc
-        ${FMOD}/studio/examples/common.cpp
-        ${FMOD}/studio/examples/common_platform.cpp
-        )
-set(CAVE-SOUND-ZMQ-SOURCES
-        src/CaveSoundZMQ.cpp
-        src/SingleFmodEvent.cpp
-        src/ContinuousFmodEvent.cpp
-        src/FmodEvents.cpp
-        src/unix-server.cc
-        src/server.cc
-        ${FMOD}/studio/examples/common.cpp
-        ${FMOD}/studio/examples/common_platform.cpp
-        )
 set(FMOD-SERVICE-SOURCES
-        src/fmod-controller.cpp
+        src/FmodController.cpp
         src/FmodException.cpp
         src/ZmqApi.cpp
         ${FMOD}/studio/examples/common.cpp
@@ -83,24 +66,6 @@ SET(FMOD_LIBRARIES
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FLAGS}")
 
 include_directories(${FMOD_INCLUDES})
-
-add_executable(cave-sound ${CAVE-SOUND-SOURCES})
-target_include_directories(cave-sound PUBLIC ${FMOD}/core/inc)
-target_link_libraries(cave-sound
-        ${FMOD_LIBRARIES}
-        Threads::Threads
-        )
-
-add_executable(tcp-receiver src/tcp-receiver.cpp lib/cppzmq/zmq.hpp)
-target_link_libraries(tcp-receiver zmq)
-
-add_executable(cave-sound-zmq ${CAVE-SOUND-ZMQ-SOURCES})
-target_include_directories(cave-sound-zmq PUBLIC ${FMOD}/core/inc)
-target_link_libraries(cave-sound-zmq
-        ${FMOD_LIBRARIES}
-        Threads::Threads
-        zmq
-        )
 
 add_executable(fmod-service ${FMOD-SERVICE-SOURCES})
 target_include_directories(fmod-service PUBLIC ${FMOD}/core/inc)

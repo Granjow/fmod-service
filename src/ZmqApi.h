@@ -1,7 +1,7 @@
 #ifndef FMOD_SERVICE_ZMQAPI_H
 #define FMOD_SERVICE_ZMQAPI_H
 
-#include "fmod-controller.h"
+#include "FmodController.h"
 
 class ZmqApi {
 

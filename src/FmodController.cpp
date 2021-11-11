@@ -1,4 +1,4 @@
-#include "fmod-controller.h"
+#include "FmodController.h"
 
 #include <iostream>
 #include <sstream>
