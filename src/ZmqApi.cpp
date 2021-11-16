@@ -1,5 +1,7 @@
 #include <iostream>
 #include <ostream>
+#include <utility>
+#include <charconv>
 #include "../lib/cppzmq/zmq.hpp"
 
 #include "common.h"
@@ -51,8 +53,10 @@ std::string ZmqApi::process_request(std::string raw_request) {
 
                 std::string eventId = params[0];
                 std::string parameterName = params[1];
-                float parameterValue = .7f;
+                float parameterValue = std::stof(params[2]);
 
+                std::cout << "Setting " << eventId << " param " << parameterName << " to " << parameterValue
+                          << std::endl;
                 response = fmodController.setParameter(eventId, parameterName, parameterValue);
             } else {
                 response = "Error: Unknown key";
