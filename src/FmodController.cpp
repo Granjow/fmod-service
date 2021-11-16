@@ -115,6 +115,9 @@ std::string FmodController::startEvent(const std::string &eventId) {
     } else {
         // Start it right now (system->update() still needs to be called!)
         checkFmodResult(eventInstance->start());
+
+        checkFmodResult(system->update());
+
         return "OK";
     }
 }
@@ -128,6 +131,8 @@ std::string FmodController::stopEvent(const std::string &eventId) {
         if (result != FMOD_OK) {
             throw FmodException("Could not stop event", result);
         }
+
+        checkFmodResult(system->update());
 
         return "OK";
     } else {
@@ -145,6 +150,8 @@ std::string FmodController::setParameter(const std::string &eventId, const std::
     if (result != FMOD_OK) {
         throw FmodException("Could not set parameter", result);
     }
+
+    checkFmodResult(system->update());
 
     return "OK";
 }
