@@ -9,10 +9,26 @@ build:
   script:
     - apt-get update
     - apt-get install -y cmake
+    - make
     - mkdir build
     - cd build
     - cmake .. -DCPU=arm
     - make
   artifacts:
     paths:
-      - dist
+      - build/fmod-service
+      - build/unitTest
+
+test:
+  image: gcc:11.2.0
+  tags:
+    - raspberry
+  stage: test
+  dependencies:
+    - build
+  variables:
+    CPU: arm
+    CONFIG: Debug
+    GIT_SUBMODULE_STRATEGY: none
+  script:
+    - ./build/unitTest
