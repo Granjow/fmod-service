@@ -21,11 +21,14 @@ public:
 
     std::string playEvent(const std::string &eventId);
 
+    std::string setParameter(const std::string &eventId, const std::string &parameterName, float value);
+
     bool isPlaying(const std::string &eventId);
 
 
 private:
     static void checkFmodResult(FMOD_RESULT result);
+
     static void checkFmodResultNothrow(FMOD_RESULT result);
 
     FMOD::Studio::System *system;

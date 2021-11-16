@@ -100,14 +100,14 @@ std::string FmodController::playEvent(const std::string &eventId) {
 std::string FmodController::startEvent(const std::string &eventId) {
     FMOD::Studio::EventInstance *eventInstance = nullptr;
 
-    auto instance = _eventInstancesById.find(eventId);
-    if (instance == _eventInstancesById.end()) {
+    auto instanceResult = _eventInstancesById.find(eventId);
+    if (instanceResult == _eventInstancesById.end()) {
         auto eventDescription = loadEventDescription(eventId);
 
-
         checkFmodResult(eventDescription->createInstance(&eventInstance));
+        _eventInstancesById.insert(std::make_pair(eventId, eventInstance));
     } else {
-        eventInstance = instance->second;
+        eventInstance = instanceResult->second;
     }
 
     if (isPlaying(eventId)) {
@@ -133,6 +133,20 @@ std::string FmodController::stopEvent(const std::string &eventId) {
     } else {
         return "Event not running or does not exist";
     }
+}
+
+std::string FmodController::setParameter(const std::string &eventId, const std::string &parameterName, float value) {
+    auto instance = _eventInstancesById.find(eventId);
+    if (instance == _eventInstancesById.end()) {
+        return "Event not running or not existing, cannot set parameter";
+    }
+
+    auto result = instance->second->setParameterByName(parameterName.c_str(), value);
+    if (result != FMOD_OK) {
+        throw FmodException("Could not set parameter", result);
+    }
+
+    return "OK";
 }
 
 FMOD::Studio::EventDescription *FmodController::loadEventDescription(const std::string &eventId) {

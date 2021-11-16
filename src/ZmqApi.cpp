@@ -6,6 +6,8 @@
 
 #include "ZmqApi.h"
 #include "FmodException.h"
+#include "ApiParameterException.h"
+#include "Parameters.h"
 
 ZmqApi::ZmqApi()
         : startedAt(std::time(nullptr)) {
@@ -43,10 +45,21 @@ std::string ZmqApi::process_request(std::string raw_request) {
                 response = fmodController.startEvent(value);
             } else if (key == "stop-event") {
                 response = fmodController.stopEvent(value);
+            } else if (key == "set-parameter") {
+                // Value format: eventId;parameterName;parameterValue
+                auto params = Parameters::parse(value, 3);
+
+                std::string eventId = params[0];
+                std::string parameterName = params[1];
+                float parameterValue = .7f;
+
+                response = fmodController.setParameter(eventId, parameterName, parameterValue);
             } else {
                 response = "Error: Unknown key";
             }
-        } catch (FmodException &err){
+        } catch (FmodException &err) {
+            response = err.what();
+        } catch (ApiParameterException &err) {
             response = err.what();
         }
 
