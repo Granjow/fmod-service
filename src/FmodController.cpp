@@ -125,19 +125,19 @@ std::string FmodController::startEvent(const std::string &eventId) {
 std::string FmodController::stopEvent(const std::string &eventId) {
     auto instance = _eventInstancesById.find(eventId);
     if (instance == _eventInstancesById.end()) {
-        std::cout << "Event: Stopping " << eventId << std::endl;
-        auto result = instance->second->stop(FMOD_STUDIO_STOP_MODE::FMOD_STUDIO_STOP_ALLOWFADEOUT);
-
-        if (result != FMOD_OK) {
-            throw FmodException("Could not stop event", result);
-        }
-
-        checkFmodResult(system->update());
-
-        return "OK";
-    } else {
         return "Event not running or does not exist";
     }
+
+    std::cout << "Event: Stopping " << eventId << std::endl;
+    auto result = instance->second->stop(FMOD_STUDIO_STOP_MODE::FMOD_STUDIO_STOP_ALLOWFADEOUT);
+
+    if (result != FMOD_OK) {
+        throw FmodException("Could not stop event", result);
+    }
+
+    checkFmodResult(system->update());
+
+    return "OK";
 }
 
 std::string FmodController::setParameter(const std::string &eventId, const std::string &parameterName, float value) {
