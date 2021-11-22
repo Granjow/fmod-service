@@ -2,6 +2,7 @@ build:
   image: gcc:11.2.0
   tags:
     - raspberry
+    - bullseye
   variables:
     CPU: arm
     CONFIG: Debug
@@ -23,6 +24,7 @@ test:
   image: gcc:11.2.0
   tags:
     - raspberry
+    - bullseye
   stage: test
   dependencies:
     - build
