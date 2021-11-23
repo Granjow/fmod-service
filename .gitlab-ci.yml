@@ -1,36 +1,72 @@
-build:
+.build:
+  stage: build
+  variables:
+    CONFIG: Debug
+    GIT_SUBMODULE_STRATEGY: normal
+  script:
+    - df -h
+    - apt-get clean
+    - apt-get update
+    - apt-get install -y cmake libzmq3-dev
+    - make
+    - mkdir build
+    - cd build
+    - cmake .. -DCPU=$FMOD_CPU
+    - make
+    - ls -lah
+    - du . -hs
+  artifacts:
+    paths:
+      - build
+      - lib/fmodstudioapi20203linux/api/core/lib/$FMOD_CPU
+      - lib/fmodstudioapi20203linux/api/studio/lib/$FMOD_CPU
+
+build:arm:
+  extends: .build
   image: gcc:11.2.0
   tags:
     - raspberry
     - bullseye
   variables:
     CPU: arm
-    CONFIG: Debug
-    GIT_SUBMODULE_STRATEGY: normal
-  script:
-    - apt-get update
-    - apt-get install -y cmake
-    - make
-    - mkdir build
-    - cd build
-    - cmake .. -DCPU=arm
-    - make
-  artifacts:
-    paths:
-      - build/fmod-service
-      - build/unitTest
+    FMOD_CPU: arm
 
-test:
-  image: gcc:11.2.0
+build:amd64:
+  extends: .build
+  image: granjow/gcc-cmake:amd64-11.2.0
   tags:
-    - raspberry
-    - bullseye
+    - linux
+  variables:
+    CPU: amd64
+    FMOD_CPU: x86_64
+
+.test:
   stage: test
-  dependencies:
-    - build
+  image: gcc:11.2.0
   variables:
     CPU: arm
     CONFIG: Debug
     GIT_SUBMODULE_STRATEGY: none
   script:
-    - ./build/unitTest
+    - apt-get update
+    - apt-get -y install libzmq3-dev
+    - ls -lah build
+    - find lib
+    - cd build
+    - chmod +x unitTest
+    - ./unitTest
+
+test:arm:
+  extends: .test
+  tags:
+    - raspberry
+    - bullseye
+  needs:
+    - build:arm
+
+test:amd64:
+  extends: .test
+  tags:
+    - linux
+  needs:
+    - build:amd64
