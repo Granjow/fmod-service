@@ -1,7 +1,5 @@
 #include <iostream>
 #include <ostream>
-#include <utility>
-#include <charconv>
 #include "../lib/cppzmq/zmq.hpp"
 
 #include "common.h"
@@ -77,18 +75,21 @@ std::string ZmqApi::process_request(std::string raw_request) {
     return response;
 }
 
-int main() {
-    ZmqApi zmqApi;
+void ZmqApi::run() {
+    run("tcp://127.0.0.1:3030");
+}
 
+void ZmqApi::run(const std::string &socketAddress) {
     zmq::context_t ctx;
     zmq::socket_t sock(ctx, zmq::socket_type::rep);
-    sock.bind("tcp://127.0.0.1:3030");
+    sock.bind(socketAddress);
 
+    // TODO listen to SIGINT and close open sockets
     while (true) {
         zmq::message_t message;
         sock.recv(message, zmq::recv_flags::none);
         std::cout << "Received:" << message << std::endl;
-        std::string result = zmqApi.process_request(message.to_string());
+        std::string result = process_request(message.to_string());
         std::cout << result << std::endl;
 
         const char *cstr = result.c_str();

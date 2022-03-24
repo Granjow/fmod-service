@@ -16,7 +16,17 @@ Then, build as usual with CMake.
 
 [fmod]: https://www.fmod.com/
 
-Todo:
+
+## Configuring sound cards on Raspberry Pi
+
+Some defaults in `/usr/share/alsa/alsa.conf`
+
+Other defaults in `/etc/asound.conf`
+
+
+[so]: https://raspberrypi.stackexchange.com/questions/80072/how-can-i-use-an-external-usb-sound-card-and-set-it-as-default/80075#80075
+
+## Todo
 
 * Parse command line arguments, e.g. for speaker configuration (5.1, 7.1, Stereo, etc.)
 

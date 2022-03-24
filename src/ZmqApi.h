@@ -2,11 +2,16 @@
 #define FMOD_SERVICE_ZMQAPI_H
 
 #include "FmodController.h"
+#include <ctime>
 
 class ZmqApi {
 
 public:
     ZmqApi();
+
+    void run();
+
+    void run(const std::string &socketAddress);
 
 public:
     std::string process_request(std::string request);

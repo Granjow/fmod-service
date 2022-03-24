@@ -15,11 +15,13 @@ FmodController::FmodController() {
     system = nullptr;
     checkFmodResult(FMOD::Studio::System::create(&system));
 
+    // TODO make speaker mode and sample rate configurable
+    bool useLiveUpdate = false;
     FMOD::System *coreSystem = nullptr;
     checkFmodResult(system->getCoreSystem(&coreSystem));
     checkFmodResult(coreSystem->setSoftwareFormat(12000, FMOD_SPEAKERMODE_7POINT1, 0));
 
-    auto result = system->initialize(1024, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, extraDriverData);
+    auto result = system->initialize(1024, useLiveUpdate ? FMOD_STUDIO_INIT_LIVEUPDATE : FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, extraDriverData);
     if (result != FMOD_RESULT::FMOD_OK) {
         std::cerr << "system->initialize() returned " << result << " in " << __FILE__ << " on line " << __LINE__
                   << std::endl;

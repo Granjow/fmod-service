@@ -47,6 +47,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 set(FMOD-SERVICE-SOURCES
+        src/main.cpp
         src/FmodController.cpp
         src/FmodException.cpp
         src/ApiParameterException.cpp
