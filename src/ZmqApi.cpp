@@ -9,8 +9,10 @@
 #include "ApiParameterException.h"
 #include "Parameters.h"
 
+ZmqApi::ZmqApi(const FmodController &fmodController) : fmodController(fmodController), startedAt(std::time(nullptr)) {}
+
 ZmqApi::ZmqApi()
-        : startedAt(std::time(nullptr)) {
+        : ZmqApi(FmodController()) {
 }
 
 std::string ZmqApi::process_request(std::string raw_request) {
@@ -39,6 +41,9 @@ std::string ZmqApi::process_request(std::string raw_request) {
             } else if (key == "load-bank") {
                 auto result = fmodController.loadBank(value);
                 response = result;
+            } else if (key == "unload-bank") {
+                auto result = fmodController.unloadBank(value);
+                response = result;
             } else if (key == "play-event") {
                 response = fmodController.playEvent(value);
             } else if (key == "start-event") {
@@ -56,6 +61,15 @@ std::string ZmqApi::process_request(std::string raw_request) {
                 std::cout << "Setting " << eventId << " param " << parameterName << " to " << parameterValue
                           << std::endl;
                 response = fmodController.setParameter(eventId, parameterName, parameterValue);
+            } else if (key == "play-voice") {
+                // Value format: eventId;voiceKey
+                auto params = Parameters::parse(value, 2);
+
+                std::string eventId = params[0];
+                std::string voiceKey = params[1];
+
+                std::cout << "Starting event " << eventId << " with programmer instrument key " << voiceKey << std::endl;
+                response = fmodController.playVoice(eventId, voiceKey);
             } else {
                 response = "Error: Unknown key";
             }

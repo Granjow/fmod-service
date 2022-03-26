@@ -8,20 +8,22 @@
 #include "common.h"
 #include "FmodException.h"
 
-FmodController::FmodController() {
+FmodController::FmodController() : FmodController(16000, FMOD_SPEAKERMODE_7POINT1, false) {
+
+}
+
+FmodController::FmodController(int sampleRate, FMOD_SPEAKERMODE speakerMode, bool enableLiveUpdate) {
 
     void *extraDriverData = nullptr;
 
     system = nullptr;
     checkFmodResult(FMOD::Studio::System::create(&system));
 
-    // TODO make speaker mode and sample rate configurable
-    bool useLiveUpdate = false;
-    FMOD::System *coreSystem = nullptr;
+    // TODO Support raw speaker mode for special setups: https://www.fmod.com/resources/documentation-api?version=2.02&page=core-api-common.html#fmod_speakermode_raw
     checkFmodResult(system->getCoreSystem(&coreSystem));
-    checkFmodResult(coreSystem->setSoftwareFormat(12000, FMOD_SPEAKERMODE_7POINT1, 0));
+    checkFmodResult(coreSystem->setSoftwareFormat(sampleRate, speakerMode, 0));
 
-    auto result = system->initialize(1024, useLiveUpdate ? FMOD_STUDIO_INIT_LIVEUPDATE : FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, extraDriverData);
+    auto result = system->initialize(1024, enableLiveUpdate ? FMOD_STUDIO_INIT_LIVEUPDATE : FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, extraDriverData);
     if (result != FMOD_RESULT::FMOD_OK) {
         std::cerr << "system->initialize() returned " << result << " in " << __FILE__ << " on line " << __LINE__
                   << std::endl;
@@ -35,8 +37,8 @@ FmodController::FmodController() {
 }
 
 FmodController::~FmodController() {
-    for (auto &bank: _banks) {
-        checkFmodResultNothrow(bank->unload());
+    for (auto &bank: _banksByPath) {
+        checkFmodResultNothrow(bank.second->unload());
     }
 
     checkFmodResultNothrow(system->release());
@@ -67,11 +69,26 @@ std::string FmodController::loadBank(const std::string &bankPath) {
         return msg.str();
     }
 
-    _banks.push_back(bank);
+    _banksByPath.insert({bankPath, bank});
 
     int eventCount;
     bank->getEventCount(&eventCount);
     std::cout << "Found " << eventCount << " events in bank " << bankPath << "." << std::endl << std::flush;
+
+    return "OK";
+}
+
+std::string FmodController::unloadBank(const std::string &bankPath) {
+    auto result = _banksByPath.find(bankPath);
+    if (result == _banksByPath.end()) {
+        std::stringstream msg;
+        msg << "Error unloading bank " << bankPath << ", not listed as loaded in map." << std::endl;
+        return msg.str();
+    }
+
+    checkFmodResult(result->second->unload());
+
+    _banksByPath.erase(bankPath);
 
     return "OK";
 }
@@ -141,6 +158,70 @@ std::string FmodController::stopEvent(const std::string &eventId) {
 
     return "OK";
 }
+
+std::string FmodController::playVoice(const std::string &eventId, const std::string &voiceKey) {
+    std::cout << "Event: Will play voice " << eventId << " with key " << voiceKey << std::endl;
+
+    auto eventDescription = loadEventDescription(eventId);
+    FMOD::Studio::EventInstance *eventInstance = nullptr;
+
+    std::cout << "Event: Playing voice " << eventId << " with key " << voiceKey << std::endl;
+
+    FMOD_RESULT result;
+    result = eventDescription->createInstance(&eventInstance);
+    if (result != FMOD_OK) {
+        throw FmodException("Cannot create event instance.", result);
+    }
+
+    programmerSoundContext.system = system;
+    programmerSoundContext.coreSystem = coreSystem;
+    programmerSoundContext.dialogueString = voiceKey;
+
+    checkFmodResult(eventInstance->setUserData(&programmerSoundContext));
+    checkFmodResult(eventInstance->setCallback(programmerSoundCallback, FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND | FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND));
+
+    std::cout << "Event instance configured for voice." << std::endl;
+
+    checkFmodResult(eventInstance->start());
+    checkFmodResult(system->update());
+
+    return "OK";
+}
+
+FMOD_RESULT FmodController::programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event, void *parameters) {
+
+    auto *eventInstance = (FMOD::Studio::EventInstance *) event;
+
+    if (type == FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND) {
+        auto *props = (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES *) parameters;
+
+        // Get our context from the event instance user data
+        ProgrammerSoundContext *context = nullptr;
+        checkFmodResult(eventInstance->getUserData((void **) &context));
+
+        // Find the audio file in the audio table with the key
+        FMOD_STUDIO_SOUND_INFO info;
+        checkFmodResult(context->system->getSoundInfo(context->dialogueString.c_str(), &info));
+
+        FMOD::Sound *sound = nullptr;
+        checkFmodResult(context->coreSystem->createSound(info.name_or_data, FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | FMOD_NONBLOCKING | info.mode, &info.exinfo, &sound));
+
+        // Pass the sound to FMOD
+        props->sound = (FMOD_SOUND *) sound;
+        props->subsoundIndex = info.subsoundindex;
+    } else if (type == FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND) {
+        auto *props = (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES *) parameters;
+
+        // Obtain the sound
+        auto *sound = (FMOD::Sound *) props->sound;
+
+        // Release the sound
+        checkFmodResult(sound->release());
+    }
+
+    return FMOD_OK;
+}
+
 
 std::string FmodController::setParameter(const std::string &eventId, const std::string &parameterName, float value) {
     auto instance = _eventInstancesById.find(eventId);

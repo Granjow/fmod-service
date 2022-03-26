@@ -26,7 +26,12 @@ Other defaults in `/etc/asound.conf`
 
 [so]: https://raspberrypi.stackexchange.com/questions/80072/how-can-i-use-an-external-usb-sound-card-and-set-it-as-default/80075#80075
 
-## Todo
 
-* Parse command line arguments, e.g. for speaker configuration (5.1, 7.1, Stereo, etc.)
+## Release Notes
 
+* Upcoming
+  * Added: Play “voice events”, i.e. events with a programmer instrument where
+    the sound file from the programmer instrument can be specified from the API
+  * Added: Sample rate, speaker configuration, and live update can now be
+    configured with CLI arguments
+  * Added: Support unloading banks for localisation support with audio tables
