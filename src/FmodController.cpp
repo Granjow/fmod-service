@@ -163,6 +163,8 @@ std::string FmodController::playVoice(const std::string &eventId, const std::str
     std::cout << "Event: Will play voice " << eventId << " with key " << voiceKey << std::endl;
 
     auto eventDescription = loadEventDescription(eventId);
+    std::cerr << "Event description is valid: " << eventDescription->isValid() << std::endl;
+
     FMOD::Studio::EventInstance *eventInstance = nullptr;
 
     std::cout << "Event: Playing voice " << eventId << " with key " << voiceKey << std::endl;
@@ -170,14 +172,17 @@ std::string FmodController::playVoice(const std::string &eventId, const std::str
     FMOD_RESULT result;
     result = eventDescription->createInstance(&eventInstance);
     if (result != FMOD_OK) {
+        auto isValid = eventInstance->isValid();
+        std::cerr << "Event instance is valid: " << isValid << std::endl;
         throw FmodException("Cannot create event instance.", result);
     }
 
-    programmerSoundContext.system = system;
-    programmerSoundContext.coreSystem = coreSystem;
-    programmerSoundContext.dialogueString = voiceKey;
+    auto *context = new ProgrammerSoundContext();
+    context->system = system;
+    context->coreSystem = coreSystem;
+    context->dialogueString = voiceKey;
 
-    checkFmodResult(eventInstance->setUserData(&programmerSoundContext));
+    checkFmodResult(eventInstance->setUserData(context));
     checkFmodResult(eventInstance->setCallback(programmerSoundCallback, FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND | FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND));
 
     std::cout << "Event instance configured for voice." << std::endl;
@@ -217,6 +222,13 @@ FMOD_RESULT FmodController::programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_T
 
         // Release the sound
         checkFmodResult(sound->release());
+
+        ProgrammerSoundContext *context = nullptr;
+        checkFmodResult(eventInstance->getUserData((void **) &context));
+        if (context != nullptr) {
+            delete context;
+            context = nullptr;
+        }
     }
 
     return FMOD_OK;

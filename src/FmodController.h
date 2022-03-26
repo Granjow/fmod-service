@@ -49,8 +49,6 @@ private:
     FMOD::Studio::System *system;
     FMOD::System *coreSystem = nullptr;
 
-    ProgrammerSoundContext programmerSoundContext = {};
-
     FMOD::Studio::EventDescription *loadEventDescription(const std::string &eventId);
 
     std::map<std::string, FMOD::Studio::Bank *> _banksByPath;

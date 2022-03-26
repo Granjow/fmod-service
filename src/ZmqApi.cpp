@@ -25,31 +25,28 @@ std::string ZmqApi::process_request(std::string raw_request) {
         request = raw_request;
     }
 
-    std::string response = "OK\n";
+    std::stringstream response;
 
     size_t pos = request.find(':');
     if (pos != std::string::npos) {
         std::string key = request.substr(0, pos);
         std::string value = request.substr(pos + 1);
-        std::cout << "Request: key=" << key << ", value=" << value << std::endl;
 
         try {
             if (key == "get" && value == "id") {
-                std::ostringstream stream;
-                stream << "ID=" << startedAt;
-                response = stream.str();
+                response << "ID=" << startedAt;
             } else if (key == "load-bank") {
                 auto result = fmodController.loadBank(value);
-                response = result;
+                response << result;
             } else if (key == "unload-bank") {
                 auto result = fmodController.unloadBank(value);
-                response = result;
+                response << result;
             } else if (key == "play-event") {
-                response = fmodController.playEvent(value);
+                response << fmodController.playEvent(value);
             } else if (key == "start-event") {
-                response = fmodController.startEvent(value);
+                response << fmodController.startEvent(value);
             } else if (key == "stop-event") {
-                response = fmodController.stopEvent(value);
+                response << fmodController.stopEvent(value);
             } else if (key == "set-parameter") {
                 // Value format: eventId;parameterName;parameterValue
                 auto params = Parameters::parse(value, 3);
@@ -60,7 +57,7 @@ std::string ZmqApi::process_request(std::string raw_request) {
 
                 std::cout << "Setting " << eventId << " param " << parameterName << " to " << parameterValue
                           << std::endl;
-                response = fmodController.setParameter(eventId, parameterName, parameterValue);
+                response << fmodController.setParameter(eventId, parameterName, parameterValue);
             } else if (key == "play-voice") {
                 // Value format: eventId;voiceKey
                 auto params = Parameters::parse(value, 2);
@@ -69,24 +66,28 @@ std::string ZmqApi::process_request(std::string raw_request) {
                 std::string voiceKey = params[1];
 
                 std::cout << "Starting event " << eventId << " with programmer instrument key " << voiceKey << std::endl;
-                response = fmodController.playVoice(eventId, voiceKey);
+                response << fmodController.playVoice(eventId, voiceKey);
             } else {
-                response = "Error: Unknown key";
+                response << "Error: Unknown key";
             }
         } catch (FmodException &err) {
-            response = err.what();
+            response << "Error: " << err.what();
         } catch (ApiParameterException &err) {
-            response = err.what();
+            response << "Error: " << err.what();
+        }
+
+        if (response.tellp() == 0) {
+            response << "OK";
         }
 
     } else {
         std::cout << "Invalid request: >>" << request << "<<" << std::endl;
-        response = "Error: Unknown request";
+        response << "Error: Unknown request";
     }
 
     std::cout << "FMOD has processed the request." << std::endl << std::flush;
 
-    return response;
+    return response.str();
 }
 
 void ZmqApi::run() {
@@ -102,7 +103,11 @@ void ZmqApi::run(const std::string &socketAddress) {
     while (true) {
         zmq::message_t message;
         sock.recv(message, zmq::recv_flags::none);
+
+#ifdef DEBUG
         std::cout << "Received:" << message << std::endl;
+#endif
+
         std::string result = process_request(message.to_string());
         std::cout << result << std::endl;
 
