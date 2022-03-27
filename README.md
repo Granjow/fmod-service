@@ -35,3 +35,4 @@ Other defaults in `/etc/asound.conf`
   * Added: Sample rate, speaker configuration, and live update can now be
     configured with CLI arguments
   * Added: Support unloading banks for localisation support with audio tables
+  * Added: Playing/stopped events (not on ZMQ yet)

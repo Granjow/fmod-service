@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <utility>
 
 #include "fmod_studio.hpp"
 #include "fmod.hpp"
@@ -42,6 +43,10 @@ FmodController::~FmodController() {
     }
 
     checkFmodResultNothrow(system->release());
+}
+
+void FmodController::setEventCallback(std::function<void(const std::string &, EventType)> callback) {
+    _eventCallback = std::move(callback);
 }
 
 void FmodController::checkFmodResult(FMOD_RESULT result) {
@@ -105,6 +110,16 @@ std::string FmodController::playEvent(const std::string &eventId) {
         throw FmodException("Cannot create event instance.", result);
     }
 
+    // Add context info to the event to allow informing about its state (played/stopped)
+    auto *context = new BaseContext;
+    context->eventId = eventId;
+    context->eventCallback = _eventCallback;
+    checkFmodResult(eventInstance->setUserData(context));
+    checkFmodResult(eventInstance->setCallback(
+            programmerSoundCallback,
+            FMOD_STUDIO_EVENT_CALLBACK_STARTED | FMOD_STUDIO_EVENT_CALLBACK_STOPPED | FMOD_STUDIO_EVENT_CALLBACK_START_FAILED
+    ));
+
     // Start it right now (system->update() still needs to be called!)
     checkFmodResult(eventInstance->start());
 
@@ -132,6 +147,17 @@ std::string FmodController::startEvent(const std::string &eventId) {
     if (isPlaying(eventId)) {
         return "Already playing";
     } else {
+
+        // Add context info to the event to allow informing about its state (played/stopped)
+        auto *context = new BaseContext;
+        context->eventId = eventId;
+        context->eventCallback = _eventCallback;
+        checkFmodResult(eventInstance->setUserData(context));
+        checkFmodResult(eventInstance->setCallback(
+                programmerSoundCallback,
+                FMOD_STUDIO_EVENT_CALLBACK_STARTED | FMOD_STUDIO_EVENT_CALLBACK_STOPPED | FMOD_STUDIO_EVENT_CALLBACK_START_FAILED
+        ));
+
         // Start it right now (system->update() still needs to be called!)
         checkFmodResult(eventInstance->start());
 
@@ -177,13 +203,18 @@ std::string FmodController::playVoice(const std::string &eventId, const std::str
         throw FmodException("Cannot create event instance.", result);
     }
 
+    // Add context info to the event to allow informing about its state (played/stopped)
+    // Also,
     auto *context = new ProgrammerSoundContext();
+    context->eventId = eventId;
+    context->eventCallback = _eventCallback;
     context->system = system;
     context->coreSystem = coreSystem;
     context->dialogueString = voiceKey;
-
     checkFmodResult(eventInstance->setUserData(context));
-    checkFmodResult(eventInstance->setCallback(programmerSoundCallback, FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND | FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND));
+    checkFmodResult(eventInstance->setCallback(programmerSoundCallback,
+                                               FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND | FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND | FMOD_STUDIO_EVENT_CALLBACK_STARTED |
+                                               FMOD_STUDIO_EVENT_CALLBACK_STOPPED));
 
     std::cout << "Event instance configured for voice." << std::endl;
 
@@ -197,23 +228,32 @@ FMOD_RESULT FmodController::programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_T
 
     auto *eventInstance = (FMOD::Studio::EventInstance *) event;
 
+    BaseContext *context = nullptr;
+    checkFmodResult(eventInstance->getUserData((void **) &context));
+
     if (type == FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND) {
         auto *props = (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES *) parameters;
 
         // Get our context from the event instance user data
-        ProgrammerSoundContext *context = nullptr;
-        checkFmodResult(eventInstance->getUserData((void **) &context));
+        ProgrammerSoundContext *programmerSoundContext = nullptr;
+        checkFmodResult(eventInstance->getUserData((void **) &programmerSoundContext));
 
-        // Find the audio file in the audio table with the key
-        FMOD_STUDIO_SOUND_INFO info;
-        checkFmodResult(context->system->getSoundInfo(context->dialogueString.c_str(), &info));
+        if (programmerSoundContext == nullptr) {
+            // No context was defined for this event; cannot play sound for it
+            std::cerr << "Event does not have user data!" << std::endl;
+        } else {
 
-        FMOD::Sound *sound = nullptr;
-        checkFmodResult(context->coreSystem->createSound(info.name_or_data, FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | FMOD_NONBLOCKING | info.mode, &info.exinfo, &sound));
+            // Find the audio file in the audio table with the key
+            FMOD_STUDIO_SOUND_INFO info;
+            checkFmodResult(programmerSoundContext->system->getSoundInfo(programmerSoundContext->dialogueString.c_str(), &info));
 
-        // Pass the sound to FMOD
-        props->sound = (FMOD_SOUND *) sound;
-        props->subsoundIndex = info.subsoundindex;
+            FMOD::Sound *sound = nullptr;
+            checkFmodResult(programmerSoundContext->coreSystem->createSound(info.name_or_data, FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | FMOD_NONBLOCKING | info.mode, &info.exinfo, &sound));
+
+            // Pass the sound to FMOD
+            props->sound = (FMOD_SOUND *) sound;
+            props->subsoundIndex = info.subsoundindex;
+        }
     } else if (type == FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND) {
         auto *props = (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES *) parameters;
 
@@ -223,8 +263,24 @@ FMOD_RESULT FmodController::programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_T
         // Release the sound
         checkFmodResult(sound->release());
 
-        ProgrammerSoundContext *context = nullptr;
-        checkFmodResult(eventInstance->getUserData((void **) &context));
+
+    } else if (type == FMOD_STUDIO_EVENT_CALLBACK_STARTED) {
+        std::cout << "Event " << (context == nullptr ? "(unknown)" : context->eventId) << " STARTED" << std::endl;
+        if (context != nullptr && context->eventCallback != nullptr) {
+            context->eventCallback(context->eventId, EventType_Started);
+        }
+
+    } else if (type == FMOD_STUDIO_EVENT_CALLBACK_STOPPED) {
+        std::cout << "Event " << (context == nullptr ? "(unknown)" : context->eventId) << " STOPPED" << std::endl;
+        if (context != nullptr && context->eventCallback != nullptr) {
+            context->eventCallback(context->eventId, EventType_Stopped);
+        }
+        if (context != nullptr) {
+            delete context;
+            context = nullptr;
+        }
+    } else if (type == FMOD_STUDIO_EVENT_CALLBACK_START_FAILED) {
+        std::cout << "Event " << (context == nullptr ? "(unknown)" : context->eventId) << " FAILED to start" << std::endl;
         if (context != nullptr) {
             delete context;
             context = nullptr;

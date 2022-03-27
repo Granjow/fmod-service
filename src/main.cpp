@@ -80,6 +80,9 @@ int main(int argc, const char *argv[]) {
               << "* Live update " << (liveUpdate ? "enabled" : "disabled") << std::endl;
 
     FmodController fmodController(sampleRate, speakerMode, liveUpdate);
+    fmodController.setEventCallback([](const std::string &eventId, EventType eventType) {
+        std::cout << "CALLBACK: " << eventId << (eventType == EventType_Started ? " Started" : " Stopped") << std::endl;
+    });
 
     ZmqApi zmqApi(fmodController);
 

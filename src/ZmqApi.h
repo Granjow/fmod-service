@@ -8,7 +8,7 @@ class ZmqApi {
 
 public:
     ZmqApi();
-    ZmqApi(const FmodController& fmodController);
+    explicit ZmqApi(const FmodController& fmodController);
 
     void run();
 
