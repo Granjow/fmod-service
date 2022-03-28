@@ -47,11 +47,11 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 set(FMOD-SERVICE-SOURCES
-        src/main.cpp
         src/FmodController.cpp
         src/FmodException.cpp
         src/ApiParameterException.cpp
         src/Parameters.cpp
+        src/ZmqApi.cpp
         ${FMOD}/studio/examples/common.cpp
         ${FMOD}/studio/examples/common_platform.cpp
         )
@@ -69,7 +69,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FLAGS}")
 
 include_directories(${FMOD_INCLUDES})
 
-add_executable(fmod-service src/ZmqApi.cpp ${FMOD-SERVICE-SOURCES})
+add_executable(fmod-service src/main.cpp ${FMOD-SERVICE-SOURCES})
 target_include_directories(fmod-service PUBLIC ${FMOD}/core/inc)
 target_link_libraries(fmod-service
         ${FMOD_LIBRARIES}
