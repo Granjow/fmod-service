@@ -347,4 +347,24 @@ bool FmodController::isPlaying(const std::string &eventId) {
     return false;
 }
 
+std::vector<std::string> FmodController::getLoadedBankPaths() const {
+    int maxBanks = 256;
+    int loadedBanks;
+    FMOD::Studio::Bank *banks[maxBanks];
+    checkFmodResult(system->getBankList(banks, maxBanks, &loadedBanks));
 
+    std::vector<std::string> bankPaths;
+    for (int i = 0; i < loadedBanks; i++) {
+        // Bank path is relative to project and starts with bank:/
+        // Should not be very long
+        int maxPathLength = 1024;
+        int pathLength;
+        char *path = new char[maxPathLength];
+        banks[i]->getPath(path, maxPathLength, &pathLength);
+
+        std::string str = path;
+        bankPaths.push_back(str);
+    }
+
+    return bankPaths;
+}

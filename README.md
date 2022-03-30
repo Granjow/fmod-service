@@ -29,10 +29,11 @@ Other defaults in `/etc/asound.conf`
 
 ## Release Notes
 
-* Upcoming
+* **v1.0.0** (2022-03-30)
   * Added: Play “voice events”, i.e. events with a programmer instrument where
     the sound file from the programmer instrument can be specified from the API
   * Added: Sample rate, speaker configuration, and live update can now be
     configured with CLI arguments
   * Added: Support unloading banks for localisation support with audio tables
   * Added: Playing/stopped events (not on ZMQ yet)
+  * Added: List paths of loaded banks
