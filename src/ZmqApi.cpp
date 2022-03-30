@@ -16,7 +16,7 @@ ZmqApi::ZmqApi()
 }
 
 std::string ZmqApi::process_request(std::string raw_request) {
-    std::cout << "FMOD is processing the request: " << raw_request << std::endl << std::flush;
+    std::cout << "Processing request: " << raw_request << std::endl << std::flush;
 
     std::string request;
     if (raw_request.back() == '\n') {
@@ -85,7 +85,7 @@ std::string ZmqApi::process_request(std::string raw_request) {
         response << "Error: Unknown request";
     }
 
-    std::cout << "FMOD has processed the request." << std::endl << std::flush;
+    std::cout << "Processed " << raw_request << std::endl << std::flush;
 
     return response.str();
 }
@@ -108,11 +108,26 @@ void ZmqApi::run(const std::string &socketAddress) {
         std::cout << "Received:" << message << std::endl;
 #endif
 
-        std::string result = process_request(message.to_string());
-        std::cout << result << std::endl;
+        try {
+            std::string result = process_request(message.to_string());
+            std::cout << result << std::endl;
 
-        const char *cstr = result.c_str();
-        zmq::message_t replyMessage = zmq::message_t(cstr, result.length());
-        sock.send(replyMessage, zmq::send_flags::none);
+            const char *cstr = result.c_str();
+            zmq::message_t replyMessage = zmq::message_t(cstr, result.length());
+            sock.send(replyMessage, zmq::send_flags::none);
+        } catch (std::exception &exception) {
+            std::cerr << "UNHANDLED EXCEPTION! " << exception.what() << std::endl;
+
+
+            std::stringstream ss;
+            ss << "UNHANDLED EXCEPTION! " << exception.what() << std::endl;
+
+            auto errorMessage=ss.str();
+            std::cerr << errorMessage;
+
+            zmq::message_t replyMessage = zmq::message_t(errorMessage.c_str(), errorMessage.length());
+            sock.send(replyMessage, zmq::send_flags::none);
+        }
+
     }
 }
