@@ -29,6 +29,7 @@ FmodController::FmodController(int sampleRate, FMOD_SPEAKERMODE speakerMode, boo
         std::cerr << "system->initialize() returned " << result << " in " << __FILE__ << " on line " << __LINE__
                   << std::endl;
         std::cerr << "Exiting because ALSA failed." << std::endl;
+        std::cerr << (FmodException("", result)).what() << std::endl;
         exit(1);
     }
 

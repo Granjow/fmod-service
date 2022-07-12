@@ -18,6 +18,12 @@ FmodException::FmodException(const std::string &message, FMOD_RESULT result) : _
         case FMOD_ERR_INVALID_HANDLE:
             ss << "Invalid handle, e.g. using event description from unloaded bank.";
             break;
+        case FMOD_ERR_INVALID_PARAM:
+            ss << "Invalid parameter, does not exist. Maybe you need to check “Exposed recursively via event instruments” on the event if it is local.";
+            break;
+        case FMOD_ERR_OUTPUT_INIT:
+            ss << "Could not initialise sound output.";
+            break;
         default:
             break;
     }
