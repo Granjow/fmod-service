@@ -64,6 +64,8 @@ public:
 
     std::string setParameter(const std::string &eventId, const std::string &parameterName, float value);
 
+    std::string setGlobalParameter(const std::string &parameterName, float value);
+
     [[nodiscard]] std::vector<std::string> getLoadedBankPaths() const;
 
     bool isPlaying(const std::string &eventId);

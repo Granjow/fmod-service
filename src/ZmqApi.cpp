@@ -61,7 +61,12 @@ std::string ZmqApi::process_request(std::string raw_request) {
 
             std::cout << "Setting " << eventId << " param " << parameterName << " to " << parameterValue
                       << std::endl;
-            response << fmodController.setParameter(eventId, parameterName, parameterValue);
+
+            if (eventId == "global") {
+                response << fmodController.setGlobalParameter(parameterName, parameterValue);
+            } else {
+                response << fmodController.setParameter(eventId, parameterName, parameterValue);
+            }
         } else if (key == "play-voice") {
             // Value format: eventId;voiceKey
             auto params = Parameters::parse(value, 2);
