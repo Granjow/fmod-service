@@ -18,8 +18,8 @@
   artifacts:
     paths:
       - build
-      - lib/fmodstudioapi20203linux/api/core/lib/$FMOD_CPU
-      - lib/fmodstudioapi20203linux/api/studio/lib/$FMOD_CPU
+      - lib/fmodstudioapi20207linux/api/core/lib/$FMOD_CPU
+      - lib/fmodstudioapi20207linux/api/studio/lib/$FMOD_CPU
 
 build:arm:
   extends: .build

@@ -308,6 +308,18 @@ std::string FmodController::setParameter(const std::string &eventId, const std::
     return "OK";
 }
 
+std::string FmodController::setGlobalParameter(const std::string &parameterName, float value) {
+    bool ignoreSeekSpeed = false;
+    auto result = system->setParameterByName(parameterName.c_str(), value, ignoreSeekSpeed);
+    if (result != FMOD_OK) {
+        throw FmodException("Could not set global parameter", result);
+    }
+
+    checkFmodResult(system->update());
+
+    return "OK";
+}
+
 FMOD::Studio::EventDescription *FmodController::loadEventDescription(const std::string &eventId) {
     auto description = _eventDescriptionsById.find(eventId);
     if (description == _eventDescriptionsById.end()) {
