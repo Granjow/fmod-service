@@ -29,6 +29,9 @@ Other defaults in `/etc/asound.conf`
 
 ## Release Notes
 
+* **v1.1.0** (2022-07-25)
+  * Added: Global parameters can now be played by using `global` as event ID
+    when using the ZeroMQ API.
 * **v1.0.0** (2022-03-30)
   * Added: Play “voice events”, i.e. events with a programmer instrument where
     the sound file from the programmer instrument can be specified from the API
