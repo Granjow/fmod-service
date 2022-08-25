@@ -295,12 +295,16 @@ FMOD_RESULT FmodController::programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_T
 std::string FmodController::setParameter(const std::string &eventId, const std::string &parameterName, float value) {
     auto instance = _eventInstancesById.find(eventId);
     if (instance == _eventInstancesById.end()) {
-        return "Event not running or not existing, cannot set parameter";
+        std::stringstream ss;
+        ss << "Event not running or not existing, cannot set parameter " << parameterName << ".";
+        return ss.str();
     }
 
     auto result = instance->second->setParameterByName(parameterName.c_str(), value);
     if (result != FMOD_OK) {
-        throw FmodException("Could not set parameter", result);
+        std::stringstream ss;
+        ss << "Could not set parameter " << parameterName << ".";
+        throw FmodException(ss.str(), result);
     }
 
     checkFmodResult(system->update());
@@ -312,7 +316,9 @@ std::string FmodController::setGlobalParameter(const std::string &parameterName,
     bool ignoreSeekSpeed = false;
     auto result = system->setParameterByName(parameterName.c_str(), value, ignoreSeekSpeed);
     if (result != FMOD_OK) {
-        throw FmodException("Could not set global parameter", result);
+        std::stringstream ss;
+        ss << "Could not set global parameter " << parameterName << ".";
+        throw FmodException(ss.str(), result);
     }
 
     checkFmodResult(system->update());
@@ -328,7 +334,9 @@ FMOD::Studio::EventDescription *FmodController::loadEventDescription(const std::
         auto result = system->getEvent(eventId.c_str(), &eventDescription);
 
         if (result != FMOD_OK) {
-            throw FmodException("Could not load event", result);
+            std::stringstream ss;
+            ss << "Could not load event " << eventId << ".";
+            throw FmodException(ss.str(), result);
         } else {
             _eventDescriptionsById.insert({eventId, eventDescription});
 
