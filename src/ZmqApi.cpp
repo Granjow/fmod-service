@@ -112,10 +112,10 @@ void ZmqApi::run(const std::string &socketAddress) {
     // TODO listen to SIGINT and close open sockets
     while (true) {
         zmq::message_t message;
-        sock.recv(message, zmq::recv_flags::none);
+        auto receivedBytes = sock.recv(message, zmq::recv_flags::none);
 
 #ifdef DEBUG
-        std::cout << "Received:" << message << std::endl;
+        std::cout << "Received " << receivedBytes.value_or(0) << " bytes:" << message << std::endl;
 #endif
 
         try {
