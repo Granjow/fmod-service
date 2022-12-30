@@ -29,6 +29,9 @@ Other defaults in `/etc/asound.conf`
 
 ## Release Notes
 
+* **v1.2.0** (2022-12-30)
+  * Added: Stop all started events
+  * Added: Service version is now printed in the `--help` output
 * **v1.1.0** (2022-07-25)
   * Added: Global parameters can now be played by using `global` as event ID
     when using the ZeroMQ API.

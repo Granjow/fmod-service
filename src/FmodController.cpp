@@ -186,6 +186,19 @@ std::string FmodController::stopEvent(const std::string &eventId) {
     return "OK";
 }
 
+std::string FmodController::stopAllStartedEvents() {
+    for (auto &entry : _eventInstancesById ) {
+        auto result = entry.second->stop(FMOD_STUDIO_STOP_MODE::FMOD_STUDIO_STOP_ALLOWFADEOUT);
+        if (result != FMOD_OK) {
+            std::cerr << "Could not stop event " << entry.first << ": " << result << std::endl;
+        }
+    }
+
+    checkFmodResult(system->update());
+
+    return "OK";
+}
+
 std::string FmodController::playVoice(const std::string &eventId, const std::string &voiceKey) {
     std::cout << "Event: Will play voice " << eventId << " with key " << voiceKey << std::endl;
 

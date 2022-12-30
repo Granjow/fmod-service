@@ -51,6 +51,8 @@ std::string ZmqApi::process_request(std::string raw_request) {
             response << fmodController.startEvent(value);
         } else if (key == "stop-event") {
             response << fmodController.stopEvent(value);
+        } else if (key == "stop-started-events") {
+            response << fmodController.stopAllStartedEvents();
         } else if (key == "set-parameter") {
             // Value format: eventId;parameterName;parameterValue
             auto params = Parameters::parse(value, 3);

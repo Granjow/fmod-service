@@ -1,4 +1,5 @@
 #include "ZmqApi.h"
+#include "version.h"
 
 #include <string>
 #include <vector>
@@ -11,7 +12,8 @@ enum Args {
 } nextArg = Arg_None;
 
 void printHelp(const char *arg0) {
-    std::cout << "Usage: " << arg0 << " OPTIONS" << std::endl;
+    std::cout << "Usage: " << arg0 << " OPTIONS" << std::endl << std::endl;
+    std::cout << "This is FMOD Service version " << version << "." << std::endl;
     std::cout << R"(
 --help
   Print Help

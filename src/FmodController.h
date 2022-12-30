@@ -58,6 +58,8 @@ public:
 
     std::string stopEvent(const std::string &eventId);
 
+    std::string stopAllStartedEvents();
+
     std::string playEvent(const std::string &eventId);
 
     std::string playVoice(const std::string &eventId, const std::string &voiceKey);

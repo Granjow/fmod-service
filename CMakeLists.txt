@@ -69,7 +69,12 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FLAGS}")
 
 include_directories(${FMOD_INCLUDES})
 
+add_custom_target(fmod-service-version
+        COMMAND make gitversion
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_executable(fmod-service src/main.cpp ${FMOD-SERVICE-SOURCES})
+add_dependencies(fmod-service fmod-service-version)
 target_include_directories(fmod-service PUBLIC ${FMOD}/core/inc)
 target_link_libraries(fmod-service
         ${FMOD_LIBRARIES}
