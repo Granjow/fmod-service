@@ -226,7 +226,7 @@ std::string FmodController::playVoice(const std::string &eventId, const std::str
     context->coreSystem = coreSystem;
     context->dialogueString = voiceKey;
     checkFmodResult(eventInstance->setUserData(context));
-    checkFmodResult(eventInstance->setCallback(programmerSoundCallback,
+    checkFmodResult(eventInstance->setCallback(runCheckedProgrammerSoundCallback,
                                                FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND | FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND | FMOD_STUDIO_EVENT_CALLBACK_STARTED |
                                                FMOD_STUDIO_EVENT_CALLBACK_STOPPED));
 
@@ -302,6 +302,15 @@ FMOD_RESULT FmodController::programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_T
     }
 
     return FMOD_OK;
+}
+
+FMOD_RESULT FmodController::runCheckedProgrammerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event, void *parameters) {
+    try {
+        return programmerSoundCallback(type, event, parameters);
+    } catch (FmodException ex) {
+        std::cerr << "Error in programmer sound callback: " << ex.what() << std::endl;
+        return FMOD_ERR_BADCOMMAND;
+    }
 }
 
 

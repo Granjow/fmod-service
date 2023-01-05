@@ -29,6 +29,8 @@ Other defaults in `/etc/asound.conf`
 
 ## Release Notes
 
+* Upcoming
+  * Fixed: If a voice key does not exist, an error is returned and the service does not crash anymore.
 * **v1.2.0** (2022-12-30)
   * Added: Stop all started events
   * Added: Service version is now printed in the `--help` output

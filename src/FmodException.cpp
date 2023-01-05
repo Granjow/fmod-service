@@ -24,6 +24,8 @@ FmodException::FmodException(const std::string &message, FMOD_RESULT result) : _
         case FMOD_ERR_OUTPUT_INIT:
             ss << "Could not initialise sound output.";
             break;
+        case FMOD_ERR_BADCOMMAND:
+            ss << "Bad command, or error in programmer sound callback function.";
         default:
             break;
     }
