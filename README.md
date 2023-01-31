@@ -29,7 +29,8 @@ Other defaults in `/etc/asound.conf`
 
 ## Release Notes
 
-* Upcoming
+* **v1.3.0** (2023-01-31)
+  * Changed: Communication is not logged anymore unless the service is run in verbose mode with `-v`.
   * Fixed: If a voice key does not exist, an error is returned and the service does not crash anymore.
 * **v1.2.0** (2022-12-30)
   * Added: Stop all started events

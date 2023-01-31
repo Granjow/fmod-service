@@ -16,7 +16,7 @@ ZmqApi::ZmqApi()
 }
 
 std::string ZmqApi::process_request(std::string raw_request) {
-    std::cout << "Processing request: " << raw_request << std::endl << std::flush;
+    verbose && std::cout << "Processing request: " << raw_request << std::endl << std::flush;
 
     std::string request;
     if (raw_request.back() == '\n') {
@@ -61,8 +61,8 @@ std::string ZmqApi::process_request(std::string raw_request) {
             std::string parameterName = params[1];
             float parameterValue = std::stof(params[2]);
 
-            std::cout << "Setting " << eventId << " param " << parameterName << " to " << parameterValue
-                      << std::endl;
+            verbose && std::cout << "Setting " << eventId << " param " << parameterName << " to " << parameterValue
+                                 << std::endl;
 
             if (eventId == "global") {
                 response << fmodController.setGlobalParameter(parameterName, parameterValue);
@@ -76,7 +76,7 @@ std::string ZmqApi::process_request(std::string raw_request) {
             std::string eventId = params[0];
             std::string voiceKey = params[1];
 
-            std::cout << "Starting event " << eventId << " with programmer instrument key " << voiceKey << std::endl;
+            verbose && std::cout << "Starting event " << eventId << " with programmer instrument key " << voiceKey << std::endl;
             response << fmodController.playVoice(eventId, voiceKey);
         } else if (key == "list-bank-paths") {
             auto bankList = fmodController.getLoadedBankPaths();
@@ -97,7 +97,7 @@ std::string ZmqApi::process_request(std::string raw_request) {
     }
 
 
-    std::cout << "Processed " << raw_request << std::endl << std::flush;
+    verbose && std::cout << "Processed " << raw_request << std::endl << std::flush;
 
     return response.str();
 }
@@ -122,7 +122,7 @@ void ZmqApi::run(const std::string &socketAddress) {
 
         try {
             std::string result = process_request(message.to_string());
-            std::cout << result << std::endl;
+            verbose && std::cout << result << std::endl;
 
             const char *cstr = result.c_str();
             zmq::message_t replyMessage = zmq::message_t(cstr, result.length());

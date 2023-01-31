@@ -23,6 +23,8 @@ void printHelp(const char *arg0) {
   Set speaker mode
 --liveupdate
   Enable live update on port 9264
+-v
+  Verbose output
 )" << std::endl;
 }
 
@@ -30,6 +32,7 @@ int main(int argc, const char *argv[]) {
 
     std::vector<std::string_view> args(argv + 1, argv + argc);
 
+    bool verbose = false;
     int sampleRate = 41000;
     bool liveUpdate = false;
     std::string speakerModeName = "7.1";
@@ -68,6 +71,8 @@ int main(int argc, const char *argv[]) {
                 } else if (arg == "--help" || arg == "-h") {
                     printHelp(argv[0]);
                     return 0;
+                } else if (arg == "-v") {
+                    verbose = true;
                 } else {
                     std::cerr << "Unsupported argument: " << arg << std::endl;
                     return -1;
@@ -87,6 +92,7 @@ int main(int argc, const char *argv[]) {
     });
 
     ZmqApi zmqApi(fmodController);
+    zmqApi.verbose = verbose;
 
     zmqApi.run();
 }

@@ -17,6 +17,8 @@ public:
 public:
     std::string process_request(std::string request);
 
+    bool verbose = false;
+
 private:
     std::time_t startedAt;
     FmodController fmodController;
