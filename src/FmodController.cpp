@@ -28,6 +28,9 @@ FmodController::FmodController(int sampleRate, FMOD_SPEAKERMODE speakerMode, boo
     if (result != FMOD_RESULT::FMOD_OK) {
         std::cerr << "system->initialize() returned " << result << " in " << __FILE__ << " on line " << __LINE__
                   << std::endl;
+        if (result == FMOD_ERR_OUTPUT_INIT) {
+            std::cerr << "Error code indicates output init issue.";
+        }
         std::cerr << "Exiting because ALSA failed." << std::endl;
         std::cerr << (FmodException("", result)).what() << std::endl;
         exit(1);
@@ -187,7 +190,7 @@ std::string FmodController::stopEvent(const std::string &eventId) {
 }
 
 std::string FmodController::stopAllStartedEvents() {
-    for (auto &entry : _eventInstancesById ) {
+    for (auto &entry: _eventInstancesById) {
         auto result = entry.second->stop(FMOD_STUDIO_STOP_MODE::FMOD_STUDIO_STOP_ALLOWFADEOUT);
         if (result != FMOD_OK) {
             std::cerr << "Could not stop event " << entry.first << ": " << result << std::endl;
