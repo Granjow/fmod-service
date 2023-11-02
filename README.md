@@ -29,6 +29,8 @@ Other defaults in `/etc/asound.conf`
 
 ## Release Notes
 
+* **v1.3.1** (2023-11-02)
+  * Changed: FMOD API bumped to 2.02.18
 * **v1.3.0** (2023-01-31)
   * Changed: Communication is not logged anymore unless the service is run in verbose mode with `-v`.
   * Fixed: If a voice key does not exist, an error is returned and the service does not crash anymore.
