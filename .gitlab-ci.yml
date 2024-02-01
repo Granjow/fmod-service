@@ -23,7 +23,7 @@
 
 build:arm:
   extends: .build
-  image: gcc:11.2.0
+  image: gcc:13.2.0
   tags:
     - raspberry
     - bullseye
