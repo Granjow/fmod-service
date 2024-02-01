@@ -5,6 +5,11 @@ to control [FMOD][fmod] sound projects by playing events and setting
 parameters.
 
 
+## Pre-requisites
+
+`libzmq3-dev` must be installed on the system.
+
+
 ## Compiling
 
 You need the FMOD Studio API (only available to registered users); unpack it to
@@ -29,6 +34,8 @@ Other defaults in `/etc/asound.conf`
 
 ## Release Notes
 
+* Upcoming
+  * cppzmq bumped to 4.10.0
 * **v1.3.1** (2023-11-02)
   * Changed: FMOD API bumped to 2.02.18
 * **v1.3.0** (2023-01-31)
