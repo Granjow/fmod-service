@@ -33,7 +33,7 @@ build:arm:
 
 build:amd64:
   extends: .build
-  image: granjow/gcc-cmake:amd64-11.2.0
+  image: granjow/gcc-cmake:amd64-13.2.0
   tags:
     - linux
   variables:
@@ -42,7 +42,7 @@ build:amd64:
 
 .test:
   stage: test
-  image: gcc:11.2.0
+  image: gcc:13.2.0
   variables:
     CPU: arm
     CONFIG: Debug
