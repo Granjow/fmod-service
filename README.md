@@ -35,7 +35,9 @@ Other defaults in `/etc/asound.conf`
 ## Release Notes
 
 * Upcoming
-  * cppzmq bumped to 4.10.0
+* **v1.4.0** (2025-03-27)
+  * Changed: cppzmq bumped to 4.10.0
+  * Changed: FMOD API bumped to 2.03.06
 * **v1.3.1** (2023-11-02)
   * Changed: FMOD API bumped to 2.02.18
 * **v1.3.0** (2023-01-31)

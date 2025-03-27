@@ -3,7 +3,6 @@
 
 #include <string>
 #include <map>
-#include <list>
 #include <functional>
 
 #include "fmod_studio.hpp"
@@ -74,9 +73,9 @@ public:
 
 
 private:
-    static FMOD_RESULT F_CALLBACK programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event, void *parameters);
+    static FMOD_RESULT programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event, void *parameters);
 
-    static FMOD_RESULT F_CALLBACK runCheckedProgrammerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event, void *parameters);
+    static FMOD_RESULT runCheckedProgrammerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event, void *parameters);
 
     static void checkFmodResult(FMOD_RESULT result);
 
