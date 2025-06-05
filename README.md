@@ -13,7 +13,7 @@ parameters.
 ## Compiling
 
 You need the FMOD Studio API (only available to registered users); unpack it to
-`lib/` so it contains an `fmodstudioapi20203linux` direcory.
+`lib/` so it contains an `fmodstudioapi20203linux` directory.
 
 The `cppzmq` submodule should be checked out in the `lib/` directory as well.
 
@@ -35,6 +35,8 @@ Other defaults in `/etc/asound.conf`
 ## Release Notes
 
 * Upcoming
+* **v1.4.1** (2025-06-05)
+  * Changed: FMOD API updated to 2.03.07
 * **v1.4.0** (2025-03-27)
   * Changed: cppzmq bumped to 4.10.0
   * Changed: FMOD API bumped to 2.03.06
