@@ -4,7 +4,7 @@ project("FMOD Service")
 
 set(CPU x86_64 CACHE STRING "CPU, one of [x86|x86_64|arm|armhf]")
 set(CONFIG Debug CACHE STRING "Debug or Release")
-set(FMOD_VERSION "20307")
+set(FMOD_VERSION "20308")
 
 set(FLAGS "")
 set(SUFFIX "")
