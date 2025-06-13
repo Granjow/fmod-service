@@ -35,9 +35,13 @@ Other defaults in `/etc/asound.conf`
 ## Release Notes
 
 * Upcoming
+* **v1.4.2** (2025-06-12)
+  * Changed: FMOD API updated to 2.03.08
 * **v1.4.1** (2025-06-05)
+  * Issue: **Do not use!** 2.03.07 has sustain point issues.
   * Changed: FMOD API updated to 2.03.07
 * **v1.4.0** (2025-03-27)
+  * Issue: **Do not use!** 2.03.06 has sustain point issues.
   * Changed: cppzmq bumped to 4.10.0
   * Changed: FMOD API bumped to 2.03.06
 * **v1.3.1** (2023-11-02)
