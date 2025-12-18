@@ -56,6 +56,9 @@ int main(int argc, const char *argv[]) {
                 } else if (arg == "stereo") {
                     speakerMode = FMOD_SPEAKERMODE_STEREO;
                     speakerModeName = "Stereo";
+                } else if (arg=="behringer") {
+                    speakerMode = FMOD_SPEAKERMODE_RAW;
+                    speakerModeName = "Behringer";
                 } else {
                     std::cerr << "Unsupported speaker mode: " << arg << std::endl;
                     return -1;

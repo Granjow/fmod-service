@@ -20,9 +20,38 @@ FmodController::FmodController(int sampleRate, FMOD_SPEAKERMODE speakerMode, boo
     system = nullptr;
     checkFmodResult(FMOD::Studio::System::create(&system));
 
+    int rawSpeakerCount = speakerMode == FMOD_SPEAKERMODE_RAW ? 8 : 0;
+
+    std::cout << "Setting up core system with speaker mode " << speakerMode
+            << ", sample rate " << sampleRate
+            << ", raw speakers " << rawSpeakerCount
+            << std::endl;
+
     // TODO Support raw speaker mode for special setups: https://www.fmod.com/resources/documentation-api?version=2.02&page=core-api-common.html#fmod_speakermode_raw
     checkFmodResult(system->getCoreSystem(&coreSystem));
-    checkFmodResult(coreSystem->setSoftwareFormat(sampleRate, speakerMode, 0));
+    std::cout << "Setting ALSA output" << std::endl;
+    checkFmodResult(coreSystem->setOutput(FMOD_OUTPUTTYPE_ALSA));
+    std::cout << "Setting driver" << std::endl;
+    checkFmodResult(coreSystem->setDriver(0));
+    std::cout << "Setting software format" << std::endl;
+    checkFmodResult(coreSystem->setSoftwareFormat(sampleRate, speakerMode, rawSpeakerCount));
+
+    int drivers = 0;
+    coreSystem->getNumDrivers(&drivers);
+    for (int i = 0; i < drivers; ++i) {
+        FMOD_GUID guid;
+        char name[256];
+        FMOD_SPEAKERMODE mode;
+        int channels;
+        int sampleRate;
+        coreSystem->getDriverInfo(i, name, sizeof(name), &guid, &channels, &mode, &sampleRate);
+
+        std::cout << "Found driver: ID " << i << ", name " << name << ", GUID " << guid.Data1 << "." << guid.Data2 << "." << guid.Data3 << "." << guid.Data4
+        << ", channels: " << channels << ", mode: " << mode << "speaker mode channels: " << sampleRate << std::endl;
+
+        // pick the UMC1820 entry
+    }
+    coreSystem->setDriver(37);
 
     auto result = system->initialize(1024, enableLiveUpdate ? FMOD_STUDIO_INIT_LIVEUPDATE : FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, extraDriverData);
     if (result != FMOD_RESULT::FMOD_OK) {
@@ -120,8 +149,9 @@ std::string FmodController::playEvent(const std::string &eventId) {
     context->eventCallback = _eventCallback;
     checkFmodResult(eventInstance->setUserData(context));
     checkFmodResult(eventInstance->setCallback(
-            programmerSoundCallback,
-            FMOD_STUDIO_EVENT_CALLBACK_STARTED | FMOD_STUDIO_EVENT_CALLBACK_STOPPED | FMOD_STUDIO_EVENT_CALLBACK_START_FAILED
+        programmerSoundCallback,
+        FMOD_STUDIO_EVENT_CALLBACK_STARTED | FMOD_STUDIO_EVENT_CALLBACK_STOPPED |
+        FMOD_STUDIO_EVENT_CALLBACK_START_FAILED
     ));
 
     // Start it right now (system->update() still needs to be called!)
@@ -158,8 +188,9 @@ std::string FmodController::startEvent(const std::string &eventId) {
         context->eventCallback = _eventCallback;
         checkFmodResult(eventInstance->setUserData(context));
         checkFmodResult(eventInstance->setCallback(
-                programmerSoundCallback,
-                FMOD_STUDIO_EVENT_CALLBACK_STARTED | FMOD_STUDIO_EVENT_CALLBACK_STOPPED | FMOD_STUDIO_EVENT_CALLBACK_START_FAILED
+            programmerSoundCallback,
+            FMOD_STUDIO_EVENT_CALLBACK_STARTED | FMOD_STUDIO_EVENT_CALLBACK_STOPPED |
+            FMOD_STUDIO_EVENT_CALLBACK_START_FAILED
         ));
 
         // Start it right now (system->update() still needs to be called!)
@@ -230,7 +261,9 @@ std::string FmodController::playVoice(const std::string &eventId, const std::str
     context->dialogueString = voiceKey;
     checkFmodResult(eventInstance->setUserData(context));
     checkFmodResult(eventInstance->setCallback(runCheckedProgrammerSoundCallback,
-                                               FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND | FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND | FMOD_STUDIO_EVENT_CALLBACK_STARTED |
+                                               FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND |
+                                               FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND |
+                                               FMOD_STUDIO_EVENT_CALLBACK_STARTED |
                                                FMOD_STUDIO_EVENT_CALLBACK_STOPPED));
 
     std::cout << "Event instance configured for voice." << std::endl;
@@ -241,7 +274,8 @@ std::string FmodController::playVoice(const std::string &eventId, const std::str
     return "OK";
 }
 
-FMOD_RESULT FmodController::programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event, void *parameters) {
+FMOD_RESULT FmodController::programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type,
+                                                    FMOD_STUDIO_EVENTINSTANCE *event, void *parameters) {
 
     auto *eventInstance = (FMOD::Studio::EventInstance *) event;
 
@@ -262,10 +296,13 @@ FMOD_RESULT FmodController::programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_T
 
             // Find the audio file in the audio table with the key
             FMOD_STUDIO_SOUND_INFO info;
-            checkFmodResult(programmerSoundContext->system->getSoundInfo(programmerSoundContext->dialogueString.c_str(), &info));
+            checkFmodResult(
+                programmerSoundContext->system->getSoundInfo(programmerSoundContext->dialogueString.c_str(), &info));
 
             FMOD::Sound *sound = nullptr;
-            checkFmodResult(programmerSoundContext->coreSystem->createSound(info.name_or_data, FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | FMOD_NONBLOCKING | info.mode, &info.exinfo, &sound));
+            checkFmodResult(programmerSoundContext->coreSystem->createSound(
+                info.name_or_data, FMOD_LOOP_NORMAL | FMOD_CREATECOMPRESSEDSAMPLE | FMOD_NONBLOCKING | info.mode,
+                &info.exinfo, &sound));
 
             // Pass the sound to FMOD
             props->sound = (FMOD_SOUND *) sound;
@@ -297,7 +334,8 @@ FMOD_RESULT FmodController::programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_T
             context = nullptr;
         }
     } else if (type == FMOD_STUDIO_EVENT_CALLBACK_START_FAILED) {
-        std::cout << "Event " << (context == nullptr ? "(unknown)" : context->eventId) << " FAILED to start" << std::endl;
+        std::cout << "Event " << (context == nullptr ? "(unknown)" : context->eventId) << " FAILED to start" <<
+                std::endl;
         if (context != nullptr) {
             delete context;
             context = nullptr;
@@ -307,7 +345,8 @@ FMOD_RESULT FmodController::programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_T
     return FMOD_OK;
 }
 
-FMOD_RESULT FmodController::runCheckedProgrammerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event, void *parameters) {
+FMOD_RESULT FmodController::runCheckedProgrammerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type,
+                                                              FMOD_STUDIO_EVENTINSTANCE *event, void *parameters) {
     try {
         return programmerSoundCallback(type, event, parameters);
     } catch (FmodException ex) {
@@ -399,8 +438,8 @@ bool FmodController::isPlaying(const std::string &eventId) {
         checkFmodResult(instance->second->getPlaybackState(&state));
         bool isPlaying = state == FMOD_STUDIO_PLAYBACK_PLAYING;
         std::cout << "Playback state of " << eventId << ": " << state << ", " << (isPlaying ? "playing" : "not playing")
-                  << std::endl
-                  << std::flush;
+                << std::endl
+                << std::flush;
         return isPlaying;
     }
     return false;
