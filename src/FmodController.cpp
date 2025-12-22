@@ -70,7 +70,13 @@ FmodController::FmodController(int sampleRate, FMOD_SPEAKERMODE speakerMode, boo
 
         // pick the UMC1820 entry
     }
+
+    std::cout << "Setting driver" << std::endl;
     coreSystem->setDriver(37);
+
+    int activeDriver;
+    coreSystem->getDriver(&activeDriver);
+    std::cout << "Active driver is " << activeDriver << std::endl;
 
     auto result = system->initialize(1024, enableLiveUpdate ? FMOD_STUDIO_INIT_LIVEUPDATE : FMOD_STUDIO_INIT_NORMAL,
                                      FMOD_INIT_NORMAL, extraDriverData);
@@ -83,6 +89,8 @@ FmodController::FmodController(int sampleRate, FMOD_SPEAKERMODE speakerMode, boo
         std::cerr << "Exiting because ALSA failed." << std::endl;
         std::cerr << (FmodException("", result)).what() << std::endl;
         exit(1);
+    } else {
+        std::cout << "System init successful." << std::endl;
     }
 
     checkFmodResult(system->update());
