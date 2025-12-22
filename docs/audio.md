@@ -16,6 +16,7 @@ Behringer UMC cards are in `/usr/share/alsa/ucm2/USB-Audio/Behringer/UMC202HD.co
   video streams, not only audio, and supports low-latency audio. PipeWire can route media streams between applications
   and ALSA. Older applications using PulseAudio or JACK also run with PipeWire as it emulates them.
 
+Raspberry OS 12 uses PipeWire, status with routing is visible with `wpctl status`.
 
 https://forum.manjaro.org/t/understanding-pulseaudio-profiles-and-sinks/159259/4
 
