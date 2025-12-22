@@ -29,8 +29,25 @@ FmodController::FmodController(int sampleRate, FMOD_SPEAKERMODE speakerMode, boo
 
     // TODO Support raw speaker mode for special setups: https://www.fmod.com/resources/documentation-api?version=2.02&page=core-api-common.html#fmod_speakermode_raw
     checkFmodResult(system->getCoreSystem(&coreSystem));
-    std::cout << "Setting ALSA output" << std::endl;
-    checkFmodResult(coreSystem->setOutput(FMOD_OUTPUTTYPE_ALSA));
+    std::cout << "Setting Pulseaudio output" << std::endl;
+    checkFmodResult(coreSystem->setOutput(FMOD_OUTPUTTYPE_PULSEAUDIO));
+
+    std::cout << "Listing drivers" << std::endl;
+    int driverCount;
+    coreSystem->getNumDrivers(&driverCount);
+    for (int i = 0; i < driverCount; ++i) {
+        char name[256];
+        FMOD_GUID guid;
+        int systemRate;
+        FMOD_SPEAKERMODE speakerMode;
+        int speakerModeChannels;
+        coreSystem->getDriverInfo(i, name, sizeof(name), &guid, &systemRate, &speakerMode, &speakerModeChannels);
+        std::cout << i << ": " << name
+                << " [" << guid.Data1 << "." << guid.Data2 << "." << guid.Data3
+                << "]: Mode " << speakerMode << ", rate " << systemRate << ", channels " << speakerModeChannels <<
+                std::endl;
+    }
+
     std::cout << "Setting driver" << std::endl;
     checkFmodResult(coreSystem->setDriver(0));
     std::cout << "Setting software format" << std::endl;
@@ -46,17 +63,20 @@ FmodController::FmodController(int sampleRate, FMOD_SPEAKERMODE speakerMode, boo
         int sampleRate;
         coreSystem->getDriverInfo(i, name, sizeof(name), &guid, &channels, &mode, &sampleRate);
 
-        std::cout << "Found driver: ID " << i << ", name " << name << ", GUID " << guid.Data1 << "." << guid.Data2 << "." << guid.Data3 << "." << guid.Data4
-        << ", channels: " << channels << ", mode: " << mode << "speaker mode channels: " << sampleRate << std::endl;
+        std::cout << "Found driver: ID " << i << ", name " << name << ", GUID " << guid.Data1 << "." << guid.Data2 <<
+                "." << guid.Data3 << "." << guid.Data4
+                << ", channels: " << channels << ", mode: " << mode << "speaker mode channels: " << sampleRate <<
+                std::endl;
 
         // pick the UMC1820 entry
     }
     coreSystem->setDriver(37);
 
-    auto result = system->initialize(1024, enableLiveUpdate ? FMOD_STUDIO_INIT_LIVEUPDATE : FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL, extraDriverData);
+    auto result = system->initialize(1024, enableLiveUpdate ? FMOD_STUDIO_INIT_LIVEUPDATE : FMOD_STUDIO_INIT_NORMAL,
+                                     FMOD_INIT_NORMAL, extraDriverData);
     if (result != FMOD_RESULT::FMOD_OK) {
         std::cerr << "system->initialize() returned " << result << " in " << __FILE__ << " on line " << __LINE__
-                  << std::endl;
+                << std::endl;
         if (result == FMOD_ERR_OUTPUT_INIT) {
             std::cerr << "Error code indicates output init issue.";
         }
