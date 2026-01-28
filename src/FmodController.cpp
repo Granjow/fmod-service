@@ -17,6 +17,9 @@ FmodController::FmodController(const int sampleRate, const FMOD_SPEAKERMODE spea
 
     void *extraDriverData = nullptr;
 
+    // Enable more debug output for FMOD
+    FMOD_Debug_Initialize(FMOD_DEBUG_LEVEL_LOG, FMOD_DEBUG_MODE_TTY, 0, 0);
+
     system = nullptr;
     checkFmodResult(FMOD::Studio::System::create(&system));
 
@@ -106,8 +109,12 @@ FmodController::FmodController(const int sampleRate, const FMOD_SPEAKERMODE spea
     }
 
 
-    auto result = system->initialize(1024, enableLiveUpdate ? FMOD_STUDIO_INIT_LIVEUPDATE : FMOD_STUDIO_INIT_NORMAL,
-                                     FMOD_INIT_NORMAL, extraDriverData);
+    auto result = system->initialize(
+        1024,
+        enableLiveUpdate ? FMOD_STUDIO_INIT_LIVEUPDATE : FMOD_STUDIO_INIT_NORMAL,
+        FMOD_INIT_NORMAL | FMOD_INIT_PROFILE_ENABLE | FMOD_INIT_PROFILE_METER_ALL,
+        extraDriverData
+    );
     if (result != FMOD_RESULT::FMOD_OK) {
         std::cerr << "system->initialize() returned " << result << " in " << __FILE__ << " on line " << __LINE__
                 << std::endl;
