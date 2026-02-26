@@ -2,3 +2,4 @@
 lib/fmod*
 cmake*
 lib/doctest.h
+src/version.h
