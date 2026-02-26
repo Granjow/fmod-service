@@ -37,6 +37,10 @@ else ()
     set(FLAGS "${FLAGS} -O2")
 endif ()
 
+if (NOT EXISTS "${CMAKE_SOURCE_DIR}/src/version.h")
+    configure_file("${CMAKE_SOURCE_DIR}/src/version.template.h" "${CMAKE_SOURCE_DIR}/src/version.h")
+endif ()
+
 set(FMOD "${CMAKE_SOURCE_DIR}/lib/fmodstudioapi${FMOD_VERSION}linux/api/")
 
 if (NOT EXISTS ${FMOD})

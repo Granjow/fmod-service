@@ -35,6 +35,8 @@ Other defaults in `/etc/asound.conf`
 ## Release Notes
 
 * Upcoming
+  * Added: Support for ARM64 (use `cmake -DCPU=arm64 …`)
+  * Changed: Removed `version.h` from version control, so running `make` does not modify a SCM controlled file
 * **v1.4.2** (2025-06-12)
   * Changed: FMOD API updated to 2.03.08
 * **v1.4.1** (2025-06-05)
