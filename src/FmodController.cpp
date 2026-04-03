@@ -341,8 +341,21 @@ std::string FmodController::setGlobalParameter(const std::string &parameterName,
     bool ignoreSeekSpeed = false;
     auto result = system->setParameterByName(parameterName.c_str(), value, ignoreSeekSpeed);
     if (result != FMOD_OK) {
+
+        constexpr size_t maxParameters = 20;
+        int parameterCount;
+        FMOD_STUDIO_PARAMETER_DESCRIPTION params[maxParameters];
+        result = system->getParameterDescriptionList(params, maxParameters, &parameterCount);
+
         std::stringstream ss;
         ss << "Could not set global parameter " << parameterName << ".";
+        if (result == FMOD_OK) {
+            ss << " Available global parameters: [";
+            for (auto i = 0; i < parameterCount; i++) {
+                ss << params[i].name << ", ";
+            }
+            ss << "].";
+        }
         throw FmodException(ss.str(), result);
     }
 
