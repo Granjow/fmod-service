@@ -27,7 +27,7 @@ class FmodController {
 public:
     FmodController();
 
-    FmodController(int sampleRate, FMOD_SPEAKERMODE speakerMode, bool enableLiveUpdate);
+    FmodController(int sampleRate, FMOD_SPEAKERMODE speakerMode, bool enableLiveUpdate, int rawSpeakerCount);
 
     ~FmodController();
 

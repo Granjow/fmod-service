@@ -9,11 +9,11 @@
 #include "common.h"
 #include "FmodException.h"
 
-FmodController::FmodController() : FmodController(16000, FMOD_SPEAKERMODE_7POINT1, false) {
+FmodController::FmodController() : FmodController(16000, FMOD_SPEAKERMODE_7POINT1, false, 0) {
 
 }
 
-FmodController::FmodController(const int sampleRate, const FMOD_SPEAKERMODE speakerMode, const bool enableLiveUpdate) {
+FmodController::FmodController(const int sampleRate, const FMOD_SPEAKERMODE speakerMode, const bool enableLiveUpdate, const int rawSpeakerCount) {
 
     void *extraDriverData = nullptr;
 
@@ -23,24 +23,33 @@ FmodController::FmodController(const int sampleRate, const FMOD_SPEAKERMODE spea
     system = nullptr;
     checkFmodResult(FMOD::Studio::System::create(&system));
 
-    int rawSpeakerCount = speakerMode == FMOD_SPEAKERMODE_RAW ? 8 : 0;
-
-    std::cout << "Common speaker modes" << std::endl
+    std::cout << "Common speaker mode IDs" << std::endl
             << "  " << FMOD_SPEAKERMODE_RAW << ": RAW" << std::endl
             << "  " << FMOD_SPEAKERMODE_STEREO << ": Stereo" << std::endl
+            << "  " << FMOD_SPEAKERMODE_QUAD << ": Quad" << std::endl
+            << "  " << FMOD_SPEAKERMODE_5POINT1 << ": 5.1" << std::endl
             << "  " << FMOD_SPEAKERMODE_7POINT1 << ": 7.1" << std::endl;
 
-    std::cout << "Setting up core system with speaker mode " << speakerMode
-            << ", sample rate " << sampleRate
-            << ", raw speakers " << rawSpeakerCount
-            << std::endl;
+    std::cout << "Target setup for core system:" << std::endl
+            << "· Speaker mode ID " << speakerMode << std::endl
+            << "· Sample rate " << sampleRate << std::endl
+            << "· Raw speakers " << rawSpeakerCount << std::endl
+            << "· Live Update " << (enableLiveUpdate ? "enabled" : "disabled") << std::endl;
 
     // TODO Support raw speaker mode for special setups: https://www.fmod.com/resources/documentation-api?version=2.02&page=core-api-common.html#fmod_speakermode_raw
     checkFmodResult(system->getCoreSystem(&coreSystem));
-    std::cout << "Setting Pulseaudio output" << std::endl;
-    checkFmodResult(coreSystem->setOutput(FMOD_OUTPUTTYPE_PULSEAUDIO));
 
-    std::cout << "Listing drivers" << std::endl;
+    std::cout << "SETTING software format: Sample rate " << sampleRate
+            << ", speaker mode " << speakerMode
+            << ", raw speakers " << rawSpeakerCount << std::endl;
+    checkFmodResult(coreSystem->setSoftwareFormat(sampleRate, speakerMode, rawSpeakerCount));
+
+    // Output type can be set to ALSA, PulseAudio, etc. with
+    // coreSystem->setOutput(FMOD_OUTPUTTYPE_PULSEAUDIO)
+
+    std::cout << "Listing drivers, active driver marked with x" << std::endl;
+    int activeDriver;
+    coreSystem->getDriver(&activeDriver);
     int driverCount;
     coreSystem->getNumDrivers(&driverCount);
     for (int i = 0; i < driverCount; ++i) {
@@ -50,69 +59,39 @@ FmodController::FmodController(const int sampleRate, const FMOD_SPEAKERMODE spea
         FMOD_SPEAKERMODE driverSpeakerMode;
         int speakerModeChannels;
         coreSystem->getDriverInfo(i, name, sizeof(name), &guid, &systemRate, &driverSpeakerMode, &speakerModeChannels);
-        std::cout << i << ": " << name
-                << " [" << guid.Data1 << "." << guid.Data2 << "." << guid.Data3
-                << "]: Mode " << driverSpeakerMode << ", rate " << systemRate << ", channels " << speakerModeChannels <<
-                std::endl;
-    }
 
-    if (false) {
-        std::cout << "Setting driver" << std::endl;
-        checkFmodResult(coreSystem->setDriver(0));
-    }
+        if (i == activeDriver) {
+            std::cout << "x ";
+        } else {
+            std::cout << "  ";
+        }
 
-    std::cout << "Setting software format: Sample rate " << sampleRate
-            << ", speaker mode " << speakerMode
-            << ", raw speakers " << rawSpeakerCount << std::endl;
-    checkFmodResult(coreSystem->setSoftwareFormat(sampleRate, speakerMode, rawSpeakerCount));
-
-    int drivers = 0;
-    coreSystem->getNumDrivers(&drivers);
-    for (int i = 0; i < drivers; ++i) {
-        FMOD_GUID guid;
-        char name[256];
-        FMOD_SPEAKERMODE mode;
-        int systemRate;
-        int modeChannels;
-        coreSystem->getDriverInfo(i, name, sizeof(name), &guid, &systemRate, &mode, &modeChannels);
-
-        std::cout << "Found driver: ID " << i << ", name " << name << ", GUID " << guid.Data1 << "." << guid.Data2 <<
-                "." << guid.Data3 << "." << guid.Data4
-                << ", rate: " << systemRate << ", mode: " << mode << ", channels: " << modeChannels <<
-                std::endl;
-    }
-
-    if (false) {
-        std::cout << "Setting driver" << std::endl;
-        coreSystem->setDriver(37);
-    }
-
-    int activeDriver;
-    coreSystem->getDriver(&activeDriver);
-    std::cout << "Active driver is " << activeDriver << std::endl;
-
-    if (true) {
-        int currentSampleRate;
-        int currentRawSpeakers;
-        FMOD_SPEAKERMODE currentSpeakerMode;
-        coreSystem->getSoftwareFormat(&currentSampleRate, &currentSpeakerMode, &currentRawSpeakers);
-
-        std::cout << "Current software format: "
-                << "Sample rate " << currentSampleRate
-                << ", speaker mode " << currentSpeakerMode
-                << ", raw speakers " << currentRawSpeakers
+        std::cout << "  Mode " << driverSpeakerMode << ", " << systemRate << " Hz, "
+                << speakerModeChannels << " Channels: "
+                << i << ": " << name
                 << std::endl;
     }
-    if (false) {
-        std::cout << "Setting software format again" << std::endl;
-        checkFmodResult(coreSystem->setSoftwareFormat(sampleRate, speakerMode, rawSpeakerCount));
-    }
 
+    // Driver can be specified explicitly with
+    // coreSystem->setDriver(X)
 
-    auto result = system->initialize(
+    int currentSampleRate;
+    int currentRawSpeakers;
+    FMOD_SPEAKERMODE currentSpeakerMode;
+    coreSystem->getSoftwareFormat(&currentSampleRate, &currentSpeakerMode, &currentRawSpeakers);
+
+    std::cout << "Current software format: "
+            << "· Speaker mode " << currentSpeakerMode
+            << "· Sample rate " << currentSampleRate
+            << "· Raw speakers " << currentRawSpeakers
+            << std::endl;
+
+    std::cout << "INITIALISING system" << std::endl;
+
+    const auto result = system->initialize(
         1024,
         enableLiveUpdate ? FMOD_STUDIO_INIT_LIVEUPDATE : FMOD_STUDIO_INIT_NORMAL,
-        FMOD_INIT_NORMAL | FMOD_INIT_PROFILE_ENABLE | FMOD_INIT_PROFILE_METER_ALL,
+        FMOD_INIT_NORMAL | (enableLiveUpdate ? (FMOD_INIT_PROFILE_ENABLE | FMOD_INIT_PROFILE_METER_ALL) : 0),
         extraDriverData
     );
     if (result != FMOD_RESULT::FMOD_OK) {
