@@ -36,7 +36,12 @@ Other defaults in `/etc/asound.conf`
 
 * Upcoming
   * Added: Support for ARM64 (use `cmake -DCPU=arm64 …`)
-  * Changed: Removed `version.h` from version control, so running `make` does not modify a SCM controlled file
+  * Added: On startup, FMOD prints more debug output
+  * Added: Support for more speaker modes (`raw`, `5.1`, `quad`). Note that RAW mode is not tested yet
+    (especially with regards to speaker positions)
+  * Changed: Removed `version.h` from version control, so running `make` does not modify an SCM controlled file
+  * Changed: Live Update mode also enables profiling
+  * Changed: FMOD API updated to 2.03.13
 * **v1.4.2** (2025-06-12)
   * Changed: FMOD API updated to 2.03.08
 * **v1.4.1** (2025-06-05)
