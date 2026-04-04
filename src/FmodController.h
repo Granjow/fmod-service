@@ -23,6 +23,20 @@ struct ProgrammerSoundContext : BaseContext {
     std::string dialogueString;
 };
 
+enum EventInstanceType {
+    EventInstanceType_Continuous,
+    EventInstanceType_SingleShot,
+    EventInstanceType_Voice,
+};
+
+struct EventInstanceData {
+    FMOD::Studio::EventInstance *eventInstance;
+    EventInstanceType eventInstanceType;
+
+    EventInstanceData(FMOD::Studio::EventInstance *eventInstance, const EventInstanceType eventInstanceType)
+        : eventInstance(eventInstance), eventInstanceType(eventInstanceType) {}
+};
+
 class FmodController {
 public:
     FmodController();
@@ -57,7 +71,7 @@ public:
 
     std::string stopEvent(const std::string &eventId);
 
-    [[nodiscard]] std::string stopAllStartedEvents() const;
+    [[nodiscard]] std::string stopAllStartedEvents();
 
     std::string playEvent(const std::string &eventId);
 
@@ -89,9 +103,12 @@ private:
 
     std::map<std::string, FMOD::Studio::Bank *> _banksByPath;
     std::map<std::string, FMOD::Studio::EventDescription *> _eventDescriptionsById;
-    std::map<std::string, FMOD::Studio::EventInstance *> _eventInstancesById;
+    std::map<std::string, EventInstanceData> _eventInstancesById;
 
     std::function<void(const std::string &eventId, EventType eventType)> _eventCallback;
+
+private:
+    void cleanUpEventInstances();
 };
 
 

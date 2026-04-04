@@ -1,5 +1,6 @@
 #include "FmodController.h"
 
+#include <chrono>
 #include <iostream>
 #include <sstream>
 #include <utility>
@@ -13,7 +14,8 @@ FmodController::FmodController() : FmodController(16000, FMOD_SPEAKERMODE_7POINT
 
 }
 
-FmodController::FmodController(const int sampleRate, const FMOD_SPEAKERMODE speakerMode, const bool enableLiveUpdate, const int rawSpeakerCount) {
+FmodController::FmodController(const int sampleRate, const FMOD_SPEAKERMODE speakerMode, const bool enableLiveUpdate,
+                               const int rawSpeakerCount) {
 
     void *extraDriverData = nullptr;
 
@@ -214,9 +216,10 @@ std::string FmodController::startEvent(const std::string &eventId) {
         const auto eventDescription = loadEventDescription(eventId);
 
         checkFmodResult(eventDescription->createInstance(&eventInstance));
-        _eventInstancesById.insert(std::make_pair(eventId, eventInstance));
+        _eventInstancesById.insert(
+            std::make_pair(eventId, EventInstanceData(eventInstance, EventInstanceType_Continuous)));
     } else {
-        eventInstance = instanceResult->second;
+        eventInstance = instanceResult->second.eventInstance;
     }
 
     if (isPlaying(eventId)) {
@@ -250,9 +253,9 @@ std::string FmodController::stopEvent(const std::string &eventId) {
     }
 
     std::cout << "Event: Stopping " << eventId << std::endl;
-    const auto result = instance->second->stop(FMOD_STUDIO_STOP_MODE::FMOD_STUDIO_STOP_ALLOWFADEOUT);
 
-    if (result != FMOD_OK) {
+    if (const auto result = instance->second.eventInstance->stop(FMOD_STUDIO_STOP_MODE::FMOD_STUDIO_STOP_ALLOWFADEOUT);
+        result != FMOD_OK) {
         throw FmodException("Could not stop event", result);
     }
 
@@ -261,9 +264,14 @@ std::string FmodController::stopEvent(const std::string &eventId) {
     return "OK";
 }
 
-std::string FmodController::stopAllStartedEvents() const {
+std::string FmodController::stopAllStartedEvents() {
+
+    cleanUpEventInstances();
+
     for (const auto &[fst, snd]: _eventInstancesById) {
-        if (const auto result = snd->stop(FMOD_STUDIO_STOP_MODE::FMOD_STUDIO_STOP_ALLOWFADEOUT); result != FMOD_OK) {
+
+        if (const auto result = snd.eventInstance->stop(FMOD_STUDIO_STOP_MODE::FMOD_STUDIO_STOP_ALLOWFADEOUT);
+            result != FMOD_OK) {
             std::cerr << "Could not stop event " << fst << ": " << result << std::endl;
         }
     }
@@ -274,7 +282,18 @@ std::string FmodController::stopAllStartedEvents() const {
 }
 
 std::string FmodController::playVoice(const std::string &eventId, const std::string &voiceKey) {
-    std::cout << "Event: Will play voice " << eventId << " with key " << voiceKey << std::endl;
+
+    const auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()
+    ).count();
+
+    std::stringstream ss;
+    ss << eventId << ";t=" << now;
+
+    const auto uniqueEventId = ss.str();
+
+    std::cout << "Event: Will play voice " << eventId << " with key " << voiceKey
+            << "and ID " << uniqueEventId << std::endl;
 
     const auto eventDescription = loadEventDescription(eventId);
     std::cerr << "Event description is valid: " << eventDescription->isValid() << std::endl;
@@ -289,6 +308,12 @@ std::string FmodController::playVoice(const std::string &eventId, const std::str
         std::cerr << "Event instance is valid: " << isValid << std::endl;
         throw FmodException("Cannot create event instance.", result);
     }
+
+    _eventInstancesById.insert(std::make_pair(
+        uniqueEventId,
+        EventInstanceData(eventInstance, EventInstanceType_Voice)
+    ));
+    std::cout << "Event instance list size: " << _eventInstancesById.size() << std::endl;
 
     // Add context info to the event to allow informing about its state (played/stopped)
     // Also,
@@ -310,7 +335,10 @@ std::string FmodController::playVoice(const std::string &eventId, const std::str
     checkFmodResult(eventInstance->start());
     checkFmodResult(system->update());
 
-    return "OK";
+    ss.clear();
+    ss << "OK " << uniqueEventId;
+
+    return ss.str();
 }
 
 FMOD_RESULT FmodController::programmerSoundCallback(const FMOD_STUDIO_EVENT_CALLBACK_TYPE type,
@@ -395,7 +423,8 @@ FMOD_RESULT FmodController::runCheckedProgrammerSoundCallback(const FMOD_STUDIO_
 }
 
 
-std::string FmodController::setParameter(const std::string &eventId, const std::string &parameterName, const float value) {
+std::string FmodController::setParameter(const std::string &eventId, const std::string &parameterName,
+                                         const float value) {
     const auto instance = _eventInstancesById.find(eventId);
     if (instance == _eventInstancesById.end()) {
         std::stringstream ss;
@@ -403,8 +432,8 @@ std::string FmodController::setParameter(const std::string &eventId, const std::
         return ss.str();
     }
 
-    const auto result = instance->second->setParameterByName(parameterName.c_str(), value);
-    if (result != FMOD_OK) {
+    if (const auto result = instance->second.eventInstance->setParameterByName(parameterName.c_str(), value);
+        result != FMOD_OK) {
         std::stringstream ss;
         ss << "Could not set parameter " << parameterName << ".";
         throw FmodException(ss.str(), result);
@@ -474,7 +503,7 @@ bool FmodController::isPlaying(const std::string &eventId) {
     FMOD_STUDIO_PLAYBACK_STATE state;
     const auto instance = _eventInstancesById.find(eventId);
     if (instance != _eventInstancesById.end()) {
-        checkFmodResult(instance->second->getPlaybackState(&state));
+        checkFmodResult(instance->second.eventInstance->getPlaybackState(&state));
         const bool isPlaying = state == FMOD_STUDIO_PLAYBACK_PLAYING;
         std::cout << "Playback state of " << eventId << ": " << state << ", " << (isPlaying ? "playing" : "not playing")
                 << std::endl
@@ -504,4 +533,34 @@ std::vector<std::string> FmodController::getLoadedBankPaths() const {
     }
 
     return bankPaths;
+}
+
+void FmodController::cleanUpEventInstances() {
+
+    std::cout << "Checking for unused event instances …" << std::endl;
+
+    size_t removedEvents = 0;
+    const size_t previousSize = _eventInstancesById.size();
+
+    std::erase_if(_eventInstancesById, [&removedEvents](const auto &item) {
+        FMOD_STUDIO_PLAYBACK_STATE playbackState;
+        auto const &[id, eventData] = item;
+        if (const auto result = eventData.eventInstance->getPlaybackState(&playbackState); result != FMOD_OK) {
+            std::cerr << "ERROR: Playback state could not be read: " << result
+                    << ". Event ID: " << id << std::endl;
+        } else {
+            if (playbackState == FMOD_STUDIO_PLAYBACK_STOPPED) {
+                if (eventData.eventInstanceType == EventInstanceType_Voice) {
+                    std::cout << "Event is stopped and will be removed: " << id << std::endl;
+                    removedEvents++;
+                    return true;
+                }
+            }
+        }
+        return false;
+    });
+
+    if (const size_t newSize = _eventInstancesById.size(); newSize != previousSize) {
+        std::cout << "Event instance list: " << newSize << " entries (" << (removedEvents) << " removed)" << std::endl;
+    }
 }

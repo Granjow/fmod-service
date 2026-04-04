@@ -20,11 +20,11 @@ void printHelp(const char *arg0) {
   Print Help
 --samplerate SAMPLE_RATE
   Set sample rate, e.g. 44100, 12000 (low quality)
---speakermode [stereo, quad, 5.1, 7.1, raw]
+--speaker-mode [stereo, quad, 5.1, 7.1, raw]
   Set speaker mode
 --raw-speakers COUNT
   Set number of raw speakers (untested!)
---liveupdate
+--live-update
   Enable live update on port 9264
 -v
   Verbose output
@@ -80,11 +80,11 @@ int main(int argc, const char *argv[]) {
             case Arg_None:
                 if (arg == "--samplerate") {
                     nextArg = Arg_SampleRate;
-                } else if (arg == "--speakermode") {
+                } else if (arg == "--speakermode" || arg == "--speaker-mode") {
                     nextArg = Arg_SpeakerMode;
                 } else if (arg == "--raw-speakers") {
                     nextArg = Arg_RawSpeakers;
-                } else if (arg == "--liveupdate") {
+                } else if (arg == "--liveupdate" || arg == "--live-update") {
                     liveUpdate = true;
                 } else if (arg == "--help" || arg == "-h") {
                     printHelp(argv[0]);

@@ -9,7 +9,7 @@ set(FMOD_VERSION "20313")
 set(FLAGS "")
 set(SUFFIX "")
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 if (${CPU} STREQUAL x86_64)
     message(STATUS "Compiling for x86_64")
