@@ -57,7 +57,7 @@ public:
 
     std::string stopEvent(const std::string &eventId);
 
-    std::string stopAllStartedEvents();
+    [[nodiscard]] std::string stopAllStartedEvents() const;
 
     std::string playEvent(const std::string &eventId);
 

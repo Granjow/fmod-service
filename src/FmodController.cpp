@@ -18,7 +18,7 @@ FmodController::FmodController(const int sampleRate, const FMOD_SPEAKERMODE spea
     void *extraDriverData = nullptr;
 
     // Enable more debug output for FMOD
-    FMOD_Debug_Initialize(FMOD_DEBUG_LEVEL_LOG, FMOD_DEBUG_MODE_TTY, 0, 0);
+    FMOD_Debug_Initialize(FMOD_DEBUG_LEVEL_LOG, FMOD_DEBUG_MODE_TTY, nullptr, nullptr);
 
     system = nullptr;
     checkFmodResult(FMOD::Studio::System::create(&system));
@@ -113,8 +113,8 @@ FmodController::FmodController(const int sampleRate, const FMOD_SPEAKERMODE spea
 }
 
 FmodController::~FmodController() {
-    for (auto &bank: _banksByPath) {
-        checkFmodResultNothrow(bank.second->unload());
+    for (const auto &[fst, snd]: _banksByPath) {
+        checkFmodResultNothrow(snd->unload());
     }
 
     checkFmodResultNothrow(system->release());
@@ -124,13 +124,13 @@ void FmodController::setEventCallback(std::function<void(const std::string &, Ev
     _eventCallback = std::move(callback);
 }
 
-void FmodController::checkFmodResult(FMOD_RESULT result) {
+void FmodController::checkFmodResult(const FMOD_RESULT result) {
     if (result != FMOD_OK) {
         throw FmodException("Result not FMOD_OK", result);
     }
 }
 
-void FmodController::checkFmodResultNothrow(FMOD_RESULT result) {
+void FmodController::checkFmodResultNothrow(const FMOD_RESULT result) {
     try {
         checkFmodResult(result);
     } catch (FmodException &ex) {
@@ -140,7 +140,7 @@ void FmodController::checkFmodResultNothrow(FMOD_RESULT result) {
 
 std::string FmodController::loadBank(const std::string &bankPath) {
     FMOD::Studio::Bank *bank;
-    auto result = system->loadBankFile(bankPath.c_str(), FMOD_STUDIO_LOAD_BANK_NORMAL, &bank);
+    const auto result = system->loadBankFile(bankPath.c_str(), FMOD_STUDIO_LOAD_BANK_NORMAL, &bank);
     checkFmodResult(result);
 
     if (result != FMOD_OK) {
@@ -159,7 +159,7 @@ std::string FmodController::loadBank(const std::string &bankPath) {
 }
 
 std::string FmodController::unloadBank(const std::string &bankPath) {
-    auto result = _banksByPath.find(bankPath);
+    const auto result = _banksByPath.find(bankPath);
     if (result == _banksByPath.end()) {
         std::stringstream msg;
         msg << "Error unloading bank " << bankPath << ", not listed as loaded in map." << std::endl;
@@ -174,13 +174,12 @@ std::string FmodController::unloadBank(const std::string &bankPath) {
 }
 
 std::string FmodController::playEvent(const std::string &eventId) {
-    auto eventDescription = loadEventDescription(eventId);
+    const auto eventDescription = loadEventDescription(eventId);
     FMOD::Studio::EventInstance *eventInstance = nullptr;
 
     std::cout << "Event: Playing " << eventId << std::endl;
 
-    FMOD_RESULT result;
-    result = eventDescription->createInstance(&eventInstance);
+    FMOD_RESULT result = eventDescription->createInstance(&eventInstance);
     if (result != FMOD_OK) {
         throw FmodException("Cannot create event instance.", result);
     }
@@ -210,9 +209,9 @@ std::string FmodController::playEvent(const std::string &eventId) {
 std::string FmodController::startEvent(const std::string &eventId) {
     FMOD::Studio::EventInstance *eventInstance = nullptr;
 
-    auto instanceResult = _eventInstancesById.find(eventId);
-    if (instanceResult == _eventInstancesById.end()) {
-        auto eventDescription = loadEventDescription(eventId);
+    // Re-use an existing event instance, or create a new one
+    if (const auto instanceResult = _eventInstancesById.find(eventId); instanceResult == _eventInstancesById.end()) {
+        const auto eventDescription = loadEventDescription(eventId);
 
         checkFmodResult(eventDescription->createInstance(&eventInstance));
         _eventInstancesById.insert(std::make_pair(eventId, eventInstance));
@@ -245,13 +244,13 @@ std::string FmodController::startEvent(const std::string &eventId) {
 }
 
 std::string FmodController::stopEvent(const std::string &eventId) {
-    auto instance = _eventInstancesById.find(eventId);
+    const auto instance = _eventInstancesById.find(eventId);
     if (instance == _eventInstancesById.end()) {
         return "Event not running or does not exist";
     }
 
     std::cout << "Event: Stopping " << eventId << std::endl;
-    auto result = instance->second->stop(FMOD_STUDIO_STOP_MODE::FMOD_STUDIO_STOP_ALLOWFADEOUT);
+    const auto result = instance->second->stop(FMOD_STUDIO_STOP_MODE::FMOD_STUDIO_STOP_ALLOWFADEOUT);
 
     if (result != FMOD_OK) {
         throw FmodException("Could not stop event", result);
@@ -262,11 +261,10 @@ std::string FmodController::stopEvent(const std::string &eventId) {
     return "OK";
 }
 
-std::string FmodController::stopAllStartedEvents() {
-    for (auto &entry: _eventInstancesById) {
-        auto result = entry.second->stop(FMOD_STUDIO_STOP_MODE::FMOD_STUDIO_STOP_ALLOWFADEOUT);
-        if (result != FMOD_OK) {
-            std::cerr << "Could not stop event " << entry.first << ": " << result << std::endl;
+std::string FmodController::stopAllStartedEvents() const {
+    for (const auto &[fst, snd]: _eventInstancesById) {
+        if (const auto result = snd->stop(FMOD_STUDIO_STOP_MODE::FMOD_STUDIO_STOP_ALLOWFADEOUT); result != FMOD_OK) {
+            std::cerr << "Could not stop event " << fst << ": " << result << std::endl;
         }
     }
 
@@ -278,17 +276,16 @@ std::string FmodController::stopAllStartedEvents() {
 std::string FmodController::playVoice(const std::string &eventId, const std::string &voiceKey) {
     std::cout << "Event: Will play voice " << eventId << " with key " << voiceKey << std::endl;
 
-    auto eventDescription = loadEventDescription(eventId);
+    const auto eventDescription = loadEventDescription(eventId);
     std::cerr << "Event description is valid: " << eventDescription->isValid() << std::endl;
 
     FMOD::Studio::EventInstance *eventInstance = nullptr;
 
     std::cout << "Event: Playing voice " << eventId << " with key " << voiceKey << std::endl;
 
-    FMOD_RESULT result;
-    result = eventDescription->createInstance(&eventInstance);
+    FMOD_RESULT result = eventDescription->createInstance(&eventInstance);
     if (result != FMOD_OK) {
-        auto isValid = eventInstance->isValid();
+        const auto isValid = eventInstance->isValid();
         std::cerr << "Event instance is valid: " << isValid << std::endl;
         throw FmodException("Cannot create event instance.", result);
     }
@@ -316,10 +313,10 @@ std::string FmodController::playVoice(const std::string &eventId, const std::str
     return "OK";
 }
 
-FMOD_RESULT FmodController::programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type,
+FMOD_RESULT FmodController::programmerSoundCallback(const FMOD_STUDIO_EVENT_CALLBACK_TYPE type,
                                                     FMOD_STUDIO_EVENTINSTANCE *event, void *parameters) {
 
-    auto *eventInstance = (FMOD::Studio::EventInstance *) event;
+    const auto *eventInstance = (FMOD::Studio::EventInstance *) event;
 
     BaseContext *context = nullptr;
     checkFmodResult(eventInstance->getUserData((void **) &context));
@@ -351,7 +348,7 @@ FMOD_RESULT FmodController::programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_T
             props->subsoundIndex = info.subsoundindex;
         }
     } else if (type == FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND) {
-        auto *props = (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES *) parameters;
+        const auto *props = (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES *) parameters;
 
         // Obtain the sound
         auto *sound = (FMOD::Sound *) props->sound;
@@ -387,26 +384,26 @@ FMOD_RESULT FmodController::programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_T
     return FMOD_OK;
 }
 
-FMOD_RESULT FmodController::runCheckedProgrammerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type,
+FMOD_RESULT FmodController::runCheckedProgrammerSoundCallback(const FMOD_STUDIO_EVENT_CALLBACK_TYPE type,
                                                               FMOD_STUDIO_EVENTINSTANCE *event, void *parameters) {
     try {
         return programmerSoundCallback(type, event, parameters);
-    } catch (FmodException ex) {
+    } catch (FmodException &ex) {
         std::cerr << "Error in programmer sound callback: " << ex.what() << std::endl;
         return FMOD_ERR_BADCOMMAND;
     }
 }
 
 
-std::string FmodController::setParameter(const std::string &eventId, const std::string &parameterName, float value) {
-    auto instance = _eventInstancesById.find(eventId);
+std::string FmodController::setParameter(const std::string &eventId, const std::string &parameterName, const float value) {
+    const auto instance = _eventInstancesById.find(eventId);
     if (instance == _eventInstancesById.end()) {
         std::stringstream ss;
         ss << "Event not running or not existing, cannot set parameter " << parameterName << ".";
         return ss.str();
     }
 
-    auto result = instance->second->setParameterByName(parameterName.c_str(), value);
+    const auto result = instance->second->setParameterByName(parameterName.c_str(), value);
     if (result != FMOD_OK) {
         std::stringstream ss;
         ss << "Could not set parameter " << parameterName << ".";
@@ -418,8 +415,8 @@ std::string FmodController::setParameter(const std::string &eventId, const std::
     return "OK";
 }
 
-std::string FmodController::setGlobalParameter(const std::string &parameterName, float value) {
-    bool ignoreSeekSpeed = false;
+std::string FmodController::setGlobalParameter(const std::string &parameterName, const float value) {
+    constexpr bool ignoreSeekSpeed = false;
     auto result = system->setParameterByName(parameterName.c_str(), value, ignoreSeekSpeed);
     if (result != FMOD_OK) {
 
@@ -446,7 +443,7 @@ std::string FmodController::setGlobalParameter(const std::string &parameterName,
 }
 
 FMOD::Studio::EventDescription *FmodController::loadEventDescription(const std::string &eventId) {
-    auto description = _eventDescriptionsById.find(eventId);
+    const auto description = _eventDescriptionsById.find(eventId);
     if (description == _eventDescriptionsById.end()) {
 
         FMOD::Studio::EventDescription *eventDescription;
@@ -475,10 +472,10 @@ FMOD::Studio::EventDescription *FmodController::loadEventDescription(const std::
 
 bool FmodController::isPlaying(const std::string &eventId) {
     FMOD_STUDIO_PLAYBACK_STATE state;
-    auto instance = _eventInstancesById.find(eventId);
+    const auto instance = _eventInstancesById.find(eventId);
     if (instance != _eventInstancesById.end()) {
         checkFmodResult(instance->second->getPlaybackState(&state));
-        bool isPlaying = state == FMOD_STUDIO_PLAYBACK_PLAYING;
+        const bool isPlaying = state == FMOD_STUDIO_PLAYBACK_PLAYING;
         std::cout << "Playback state of " << eventId << ": " << state << ", " << (isPlaying ? "playing" : "not playing")
                 << std::endl
                 << std::flush;
@@ -488,7 +485,7 @@ bool FmodController::isPlaying(const std::string &eventId) {
 }
 
 std::vector<std::string> FmodController::getLoadedBankPaths() const {
-    int maxBanks = 256;
+    constexpr int maxBanks = 256;
     int loadedBanks;
     FMOD::Studio::Bank *banks[maxBanks];
     checkFmodResult(system->getBankList(banks, maxBanks, &loadedBanks));
@@ -497,7 +494,7 @@ std::vector<std::string> FmodController::getLoadedBankPaths() const {
     for (int i = 0; i < loadedBanks; i++) {
         // Bank path is relative to project and starts with bank:/
         // Should not be very long
-        int maxPathLength = 1024;
+        constexpr int maxPathLength = 1024;
         int pathLength;
         char *path = new char[maxPathLength];
         banks[i]->getPath(path, maxPathLength, &pathLength);
