@@ -35,13 +35,15 @@ Other defaults in `/etc/asound.conf`
 ## Release Notes
 
 * Upcoming
+* **v1.5.0** (2026-04-05)
   * Added: Support for ARM64 (use `cmake -DCPU=arm64 …`)
   * Added: On startup, FMOD prints more debug output
   * Added: Support for more speaker modes (`raw`, `5.1`, `quad`). Note that RAW mode is not tested yet
     (especially with regards to speaker positions)
-  * Changed: `stop-started-events` now also stops events that were started with `play-voice`
-  * Changed: `start-voice` returns `OK [ID]`, where `[ID]` can be used to stop that voice instance later
-  * Changed: `stop-event` can also stop single-shot voice events with their returned ID
+  * Changed: `stop-started-events` now also stops events that were started with `play-event` or `play-voice`
+  * Changed: `play-voice` returns `OK [ID]`, where `[ID]` can be used to stop that voice instance later
+  * Changed: `play-event` returns `OK [ID]`, where `[ID]` can be used to stop that voice instance later
+  * Changed: `stop-event` can also stop `play-voice` or `play-event` events with their returned ID
   * Changed: Removed `version.h` from version control, so running `make` does not modify an SCM controlled file
   * Changed: Live Update mode also enables profiling
   * Changed: Arguments like `--live-update` changed to dashed version (old version still works)

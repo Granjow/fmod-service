@@ -34,7 +34,8 @@ struct EventInstanceData {
     EventInstanceType eventInstanceType;
 
     EventInstanceData(FMOD::Studio::EventInstance *eventInstance, const EventInstanceType eventInstanceType)
-        : eventInstance(eventInstance), eventInstanceType(eventInstanceType) {}
+        : eventInstance(eventInstance), eventInstanceType(eventInstanceType) {
+    }
 };
 
 class FmodController {
@@ -85,15 +86,19 @@ public:
 
     bool isPlaying(const std::string &eventId);
 
-
 private:
-    static FMOD_RESULT programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event, void *parameters);
+    static FMOD_RESULT programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event,
+                                               void *parameters);
 
-    static FMOD_RESULT runCheckedProgrammerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event, void *parameters);
+    static FMOD_RESULT runCheckedProgrammerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type,
+                                                         FMOD_STUDIO_EVENTINSTANCE *event, void *parameters);
 
     static void checkFmodResult(FMOD_RESULT result);
 
     static void checkFmodResultNothrow(FMOD_RESULT result);
+
+    [[nodiscard]]
+    static std::string generateUniqueEventId(const std::string &eventId);
 
 private:
     FMOD::Studio::System *system;

@@ -179,12 +179,15 @@ std::string FmodController::playEvent(const std::string &eventId) {
     const auto eventDescription = loadEventDescription(eventId);
     FMOD::Studio::EventInstance *eventInstance = nullptr;
 
-    std::cout << "Event: Playing " << eventId << std::endl;
+    auto uniqueEventId = generateUniqueEventId(eventId);
+    std::cout << "Event: Playing " << eventId << " with unique id \"" << uniqueEventId << "\"" << std::endl;
 
-    FMOD_RESULT result = eventDescription->createInstance(&eventInstance);
-    if (result != FMOD_OK) {
+    if (const FMOD_RESULT result = eventDescription->createInstance(&eventInstance); result != FMOD_OK) {
         throw FmodException("Cannot create event instance.", result);
     }
+
+    _eventInstancesById.insert(std::make_pair(uniqueEventId,
+                                              EventInstanceData(eventInstance, EventInstanceType_SingleShot)));
 
     // Add context info to the event to allow informing about its state (played/stopped)
     auto *context = new BaseContext;
@@ -205,7 +208,9 @@ std::string FmodController::playEvent(const std::string &eventId) {
     // Release will clean up the instance when it completes
     checkFmodResult(eventInstance->release());
 
-    return "OK";
+    std::stringstream response;
+    response << "OK " << uniqueEventId;
+    return response.str();
 }
 
 std::string FmodController::startEvent(const std::string &eventId) {
@@ -283,14 +288,7 @@ std::string FmodController::stopAllStartedEvents() {
 
 std::string FmodController::playVoice(const std::string &eventId, const std::string &voiceKey) {
 
-    const auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch()
-    ).count();
-
-    std::stringstream ss;
-    ss << eventId << ";t=" << now;
-
-    const auto uniqueEventId = ss.str();
+    const auto uniqueEventId = generateUniqueEventId(eventId);
 
     std::cout << "Event: Will play voice " << eventId << " with key " << voiceKey
             << "and ID " << uniqueEventId << std::endl;
@@ -302,8 +300,7 @@ std::string FmodController::playVoice(const std::string &eventId, const std::str
 
     std::cout << "Event: Playing voice " << eventId << " with key " << voiceKey << std::endl;
 
-    FMOD_RESULT result = eventDescription->createInstance(&eventInstance);
-    if (result != FMOD_OK) {
+    if (const FMOD_RESULT result = eventDescription->createInstance(&eventInstance); result != FMOD_OK) {
         const auto isValid = eventInstance->isValid();
         std::cerr << "Event instance is valid: " << isValid << std::endl;
         throw FmodException("Cannot create event instance.", result);
@@ -335,10 +332,8 @@ std::string FmodController::playVoice(const std::string &eventId, const std::str
     checkFmodResult(eventInstance->start());
     checkFmodResult(system->update());
 
-    // Clear stringstream and insert answer
-    ss.str(std::string());
+    std::stringstream ss;
     ss << "OK " << uniqueEventId;
-
     return ss.str();
 }
 
@@ -551,7 +546,8 @@ void FmodController::cleanUpEventInstances() {
                     << ". Event ID: " << id << std::endl;
         } else {
             if (playbackState == FMOD_STUDIO_PLAYBACK_STOPPED) {
-                if (eventData.eventInstanceType == EventInstanceType_Voice) {
+                if (eventData.eventInstanceType == EventInstanceType_Voice
+                    || eventData.eventInstanceType == EventInstanceType_SingleShot) {
                     std::cout << "Event is stopped and will be removed: " << id << std::endl;
                     removedEvents++;
                     return true;
@@ -564,4 +560,15 @@ void FmodController::cleanUpEventInstances() {
     if (const size_t newSize = _eventInstancesById.size(); newSize != previousSize) {
         std::cout << "Event instance list: " << newSize << " entries (" << (removedEvents) << " removed)" << std::endl;
     }
+}
+
+std::string FmodController::generateUniqueEventId(const std::string &eventId) {
+    const auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()
+    ).count();
+
+    std::stringstream ss;
+    ss << eventId << ";t=" << now;
+
+    return ss.str();
 }
