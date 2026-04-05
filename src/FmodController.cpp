@@ -335,7 +335,8 @@ std::string FmodController::playVoice(const std::string &eventId, const std::str
     checkFmodResult(eventInstance->start());
     checkFmodResult(system->update());
 
-    ss.clear();
+    // Clear stringstream and insert answer
+    ss.str(std::string());
     ss << "OK " << uniqueEventId;
 
     return ss.str();
