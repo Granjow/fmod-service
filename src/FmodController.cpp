@@ -137,9 +137,9 @@ int FmodController::selectOutputDriver(FMOD_SPEAKERMODE speakerMode) {
     int systemRate;
     FMOD_SPEAKERMODE driverSpeakerMode;
     int speakerModeChannels;
-    coreSystem->getDriverInfo(i, name, sizeof(name), &guid, &systemRate, &driverSpeakerMode, &speakerModeChannels);
+    coreSystem->getDriverInfo(activeDriver, name, sizeof(name), &guid, &systemRate, &driverSpeakerMode, &speakerModeChannels);
     if (driverSpeakerMode != speakerMode) {
-        std::cout << "Default driver does not match speaker mode, checking for better fit" << std::endl;
+        std::cout << "Default driver does not match speaker mode, checking for better fit with mode " << speakerMode << std::endl;
 
         for (int i = 0; i < driverCount; ++i) {
             coreSystem->getDriverInfo(i, name, sizeof(name), &guid, &systemRate, &driverSpeakerMode,
@@ -148,6 +148,7 @@ int FmodController::selectOutputDriver(FMOD_SPEAKERMODE speakerMode) {
                 std::cout << "-> Using driver " << i
                 << "with " << speakerModeChannels << " channels: " << name <<
                         std::endl;
+                coreSystem->setDriver(i);
                 return i;
             }
         }
