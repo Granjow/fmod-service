@@ -3,6 +3,9 @@
 
 #include "FmodController.h"
 #include <ctime>
+#include <deque>
+#include <mutex>
+#include <string>
 
 class ZmqApi {
 
@@ -12,7 +15,9 @@ public:
 
     void run();
 
-    void run(const std::string &socketAddress);
+    void run(const std::string &repAddress);
+
+    void run(const std::string &repAddress, const std::string &pubAddress);
 
 public:
     std::string process_request(std::string request);
@@ -22,6 +27,9 @@ public:
 private:
     std::time_t startedAt;
     FmodController fmodController;
+
+    std::deque<std::string> _pendingPublish;
+    std::mutex _pendingMutex;
 };
 
 

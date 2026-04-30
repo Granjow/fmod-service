@@ -104,10 +104,7 @@ int main(int argc, const char *argv[]) {
               << "* Speaker mode " << speakerModeName << std::endl
               << "* Live update " << (liveUpdate ? "enabled" : "disabled") << std::endl;
 
-    FmodController fmodController(sampleRate, speakerMode, liveUpdate, rawSpeakerCount);
-    fmodController.setEventCallback([](const std::string &eventId, EventType eventType) {
-        std::cout << "CALLBACK: " << eventId << (eventType == EventType_Started ? " Started" : " Stopped") << std::endl;
-    });
+    const FmodController fmodController(sampleRate, speakerMode, liveUpdate, rawSpeakerCount);
 
     ZmqApi zmqApi(fmodController);
     zmqApi.verbose = verbose;
