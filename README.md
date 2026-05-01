@@ -35,6 +35,8 @@ Other defaults in `/etc/asound.conf`
 ## Release Notes
 
 * Upcoming
+  * Added: Timeline marker events are now emitted on a separate `PUB/SUB` ZermoMQ socket,
+    which by default listens on port `3001`.
 * **v1.5.0** (2026-04-05)
   * Added: Support for ARM64 (use `cmake -DCPU=arm64 …`)
   * Added: On startup, FMOD prints more debug output

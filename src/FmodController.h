@@ -15,6 +15,7 @@ enum EventType {
 struct BaseContext {
     std::string eventId;
     std::function<void(const std::string &eventId, EventType eventType)> eventCallback;
+    std::function<void(const std::string &eventId, const std::string &markerName)> markerCallback;
 };
 
 struct ProgrammerSoundContext : BaseContext {
@@ -47,6 +48,8 @@ public:
     ~FmodController();
 
     void setEventCallback(std::function<void(const std::string &eventId, EventType eventType)> callback);
+
+    void setMarkerCallback(std::function<void(const std::string &eventId, const std::string &markerName)> callback);
 
     /*
      * To check for RAW mode:
@@ -111,6 +114,7 @@ private:
     std::map<std::string, EventInstanceData> _eventInstancesById;
 
     std::function<void(const std::string &eventId, EventType eventType)> _eventCallback;
+    std::function<void(const std::string &eventId, const std::string &markerName)> _markerCallback;
 
 private:
     void cleanUpEventInstances();

@@ -1,3 +1,4 @@
+#include <chrono>
 #include <iostream>
 #include <ostream>
 #include "../lib/cppzmq/zmq.hpp"
@@ -9,10 +10,11 @@
 #include "ApiParameterException.h"
 #include "Parameters.h"
 
-ZmqApi::ZmqApi(const FmodController &fmodController) : fmodController(fmodController), startedAt(std::time(nullptr)) {}
+ZmqApi::ZmqApi(const FmodController &fmodController) : fmodController(fmodController), startedAt(std::time(nullptr)) {
+}
 
 ZmqApi::ZmqApi()
-        : ZmqApi(FmodController()) {
+    : ZmqApi(FmodController()) {
 }
 
 std::string ZmqApi::process_request(std::string raw_request) {
@@ -62,7 +64,7 @@ std::string ZmqApi::process_request(std::string raw_request) {
             float parameterValue = std::stof(params[2]);
 
             verbose && std::cout << "Setting " << eventId << " param " << parameterName << " to " << parameterValue
-                                 << std::endl;
+                    << std::endl;
 
             if (eventId == "global") {
                 response << fmodController.setGlobalParameter(parameterName, parameterValue);
@@ -76,7 +78,8 @@ std::string ZmqApi::process_request(std::string raw_request) {
             std::string eventId = params[0];
             std::string voiceKey = params[1];
 
-            verbose && std::cout << "Starting event " << eventId << " with programmer instrument key " << voiceKey << std::endl;
+            verbose && std::cout << "Starting event " << eventId << " with programmer instrument key " << voiceKey <<
+                    std::endl;
             response << fmodController.playVoice(eventId, voiceKey);
         } else if (key == "list-bank-paths") {
             auto bankList = fmodController.getLoadedBankPaths();
@@ -103,43 +106,75 @@ std::string ZmqApi::process_request(std::string raw_request) {
 }
 
 void ZmqApi::run() {
-    run("tcp://127.0.0.1:3030");
+    run("tcp://127.0.0.1:3030", "tcp://127.0.0.1:3031");
 }
 
-void ZmqApi::run(const std::string &socketAddress) {
+void ZmqApi::run(const std::string &repAddress) {
+    run(repAddress, "tcp://127.0.0.1:3031");
+}
+
+void ZmqApi::run(const std::string &repAddress, const std::string &pubAddress) {
+    fmodController.setMarkerCallback([this](const std::string &eventId, const std::string &markerName) {
+        // Put the event into a queue to not interrupt the FMOD thread while sending the ZMQ message
+        const auto now = std::chrono::system_clock::now();
+        const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+        std::string message = "marker:" + eventId + ";" + markerName + ";t=" + std::to_string(ms);
+        std::lock_guard<std::mutex> lock(_pendingMutex);
+        _pendingPublish.push_back(std::move(message));
+    });
+
     zmq::context_t ctx;
-    zmq::socket_t sock(ctx, zmq::socket_type::rep);
-    sock.bind(socketAddress);
+    zmq::socket_t rep_sock(ctx, zmq::socket_type::rep);
+    rep_sock.bind(repAddress);
+
+    zmq::socket_t pub_sock(ctx, zmq::socket_type::pub);
+    pub_sock.bind(pubAddress);
+
+    std::cout << "ZMQ REP listening on " << repAddress << std::endl
+            << "ZMQ PUB listening on " << pubAddress << std::endl << std::flush;
+
+    zmq::pollitem_t items[] = {{static_cast<void *>(rep_sock), 0, ZMQ_POLLIN, 0}};
 
     // TODO listen to SIGINT and close open sockets
     while (true) {
-        zmq::message_t message;
-        auto receivedBytes = sock.recv(message, zmq::recv_flags::none);
+        zmq::poll(items, 1, std::chrono::milliseconds(10));
+
+        if (items[0].revents & ZMQ_POLLIN) {
+            zmq::message_t message;
+            rep_sock.recv(message, zmq::recv_flags::none);
 
 #ifdef DEBUG
-        std::cout << "Received " << receivedBytes.value_or(0) << " bytes:" << message << std::endl;
+            std::cout << "Received " << message.size() << " bytes:" << message << std::endl;
 #endif
 
-        try {
-            std::string result = process_request(message.to_string());
-            verbose && std::cout << result << std::endl;
+            try {
+                std::string result = process_request(message.to_string());
+                verbose && std::cout << result << std::endl;
 
-            const char *cstr = result.c_str();
-            zmq::message_t replyMessage = zmq::message_t(cstr, result.length());
-            sock.send(replyMessage, zmq::send_flags::none);
-        } catch (std::exception &exception) {
-            std::cerr << "UNHANDLED EXCEPTION! " << exception.what() << std::endl;
+                zmq::message_t replyMessage(result.c_str(), result.length());
+                rep_sock.send(replyMessage, zmq::send_flags::none);
+            } catch (std::exception &exception) {
+                std::cerr << "UNHANDLED EXCEPTION! " << exception.what() << std::endl;
 
+                std::stringstream ss;
+                ss << "UNHANDLED EXCEPTION! " << exception.what() << std::endl;
 
-            std::stringstream ss;
-            ss << "UNHANDLED EXCEPTION! " << exception.what() << std::endl;
+                auto errorMessage = ss.str();
+                std::cerr << errorMessage;
 
-            auto errorMessage = ss.str();
-            std::cerr << errorMessage;
-
-            zmq::message_t replyMessage = zmq::message_t(errorMessage.c_str(), errorMessage.length());
-            sock.send(replyMessage, zmq::send_flags::none);
+                zmq::message_t replyMessage(errorMessage.c_str(), errorMessage.length());
+                rep_sock.send(replyMessage, zmq::send_flags::none);
+            }
         }
 
+        // Drain the marker event queue and publish
+        std::deque<std::string> toPublish; {
+            std::lock_guard<std::mutex> lock(_pendingMutex);
+            toPublish.swap(_pendingPublish);
+        }
+        for (const auto &msg: toPublish) {
+            verbose && std::cout << "PUB: " << msg << std::endl;
+            pub_sock.send(zmq::message_t(msg.c_str(), msg.length()), zmq::send_flags::none);
+        }
     }
 }

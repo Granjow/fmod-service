@@ -126,6 +126,10 @@ void FmodController::setEventCallback(std::function<void(const std::string &, Ev
     _eventCallback = std::move(callback);
 }
 
+void FmodController::setMarkerCallback(std::function<void(const std::string &, const std::string &)> callback) {
+    _markerCallback = std::move(callback);
+}
+
 void FmodController::checkFmodResult(const FMOD_RESULT result) {
     if (result != FMOD_OK) {
         throw FmodException("Result not FMOD_OK", result);
@@ -193,11 +197,12 @@ std::string FmodController::playEvent(const std::string &eventId) {
     auto *context = new BaseContext;
     context->eventId = eventId;
     context->eventCallback = _eventCallback;
+    context->markerCallback = _markerCallback;
     checkFmodResult(eventInstance->setUserData(context));
     checkFmodResult(eventInstance->setCallback(
         programmerSoundCallback,
         FMOD_STUDIO_EVENT_CALLBACK_STARTED | FMOD_STUDIO_EVENT_CALLBACK_STOPPED |
-        FMOD_STUDIO_EVENT_CALLBACK_START_FAILED
+        FMOD_STUDIO_EVENT_CALLBACK_START_FAILED | FMOD_STUDIO_EVENT_CALLBACK_TIMELINE_MARKER
     ));
 
     // Start it right now (system->update() still needs to be called!)
@@ -235,11 +240,12 @@ std::string FmodController::startEvent(const std::string &eventId) {
         auto *context = new BaseContext;
         context->eventId = eventId;
         context->eventCallback = _eventCallback;
+        context->markerCallback = _markerCallback;
         checkFmodResult(eventInstance->setUserData(context));
         checkFmodResult(eventInstance->setCallback(
             programmerSoundCallback,
             FMOD_STUDIO_EVENT_CALLBACK_STARTED | FMOD_STUDIO_EVENT_CALLBACK_STOPPED |
-            FMOD_STUDIO_EVENT_CALLBACK_START_FAILED
+            FMOD_STUDIO_EVENT_CALLBACK_START_FAILED | FMOD_STUDIO_EVENT_CALLBACK_TIMELINE_MARKER
         ));
 
         // Start it right now (system->update() still needs to be called!)
@@ -317,6 +323,7 @@ std::string FmodController::playVoice(const std::string &eventId, const std::str
     auto *context = new ProgrammerSoundContext();
     context->eventId = eventId;
     context->eventCallback = _eventCallback;
+    context->markerCallback = _markerCallback;
     context->system = system;
     context->coreSystem = coreSystem;
     context->dialogueString = voiceKey;
@@ -325,7 +332,8 @@ std::string FmodController::playVoice(const std::string &eventId, const std::str
                                                FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND |
                                                FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND |
                                                FMOD_STUDIO_EVENT_CALLBACK_STARTED |
-                                               FMOD_STUDIO_EVENT_CALLBACK_STOPPED));
+                                               FMOD_STUDIO_EVENT_CALLBACK_STOPPED |
+                                               FMOD_STUDIO_EVENT_CALLBACK_TIMELINE_MARKER));
 
     std::cout << "Event instance configured for voice." << std::endl;
 
@@ -380,6 +388,15 @@ FMOD_RESULT FmodController::programmerSoundCallback(const FMOD_STUDIO_EVENT_CALL
         // Release the sound
         checkFmodResult(sound->release());
 
+
+    } else if (type == FMOD_STUDIO_EVENT_CALLBACK_TIMELINE_MARKER) {
+        const auto *props = static_cast<FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES *>(parameters);
+        const std::string markerName = props->name;
+        std::cout << "Event " << (context == nullptr ? "(unknown)" : context->eventId)
+                  << " MARKER " << markerName << std::endl;
+        if (context != nullptr && context->markerCallback != nullptr) {
+            context->markerCallback(context->eventId, markerName);
+        }
 
     } else if (type == FMOD_STUDIO_EVENT_CALLBACK_STARTED) {
         std::cout << "Event " << (context == nullptr ? "(unknown)" : context->eventId) << " STARTED" << std::endl;
