@@ -37,6 +37,8 @@ Other defaults in `/etc/asound.conf`
 * Upcoming
   * Added: Timeline marker events are now emitted on a separate `PUB/SUB` ZermoMQ socket,
     which by default listens on port `3001`.
+  * Added: On startup, choose the best matching driver for the selected speaker mode.
+    For example, choose an 8-channel output (if available) for `7.1` speaker mode.
 * **v1.5.0** (2026-04-05)
   * Added: Support for ARM64 (use `cmake -DCPU=arm64 …`)
   * Added: On startup, FMOD prints more debug output
