@@ -49,33 +49,10 @@ FmodController::FmodController(const int sampleRate, const FMOD_SPEAKERMODE spea
     // Output type can be set to ALSA, PulseAudio, etc. with
     // coreSystem->setOutput(FMOD_OUTPUTTYPE_PULSEAUDIO)
 
-    std::cout << "Listing drivers, active driver marked with x" << std::endl;
-    int activeDriver;
-    coreSystem->getDriver(&activeDriver);
-    int driverCount;
-    coreSystem->getNumDrivers(&driverCount);
-    for (int i = 0; i < driverCount; ++i) {
-        char name[256];
-        FMOD_GUID guid;
-        int systemRate;
-        FMOD_SPEAKERMODE driverSpeakerMode;
-        int speakerModeChannels;
-        coreSystem->getDriverInfo(i, name, sizeof(name), &guid, &systemRate, &driverSpeakerMode, &speakerModeChannels);
-
-        if (i == activeDriver) {
-            std::cout << "x ";
-        } else {
-            std::cout << "  ";
-        }
-
-        std::cout << "  Mode " << driverSpeakerMode << ", " << systemRate << " Hz, "
-                << speakerModeChannels << " Channels: "
-                << i << ": " << name
-                << std::endl;
+    printDrivers();
+    if (const auto newDriver = selectOutputDriver(speakerMode); newDriver >= 0) {
+        printDrivers();
     }
-
-    // Driver can be specified explicitly with
-    // coreSystem->setDriver(X)
 
     int currentSampleRate;
     int currentRawSpeakers;
@@ -120,6 +97,63 @@ FmodController::~FmodController() {
     }
 
     checkFmodResultNothrow(system->release());
+}
+
+void FmodController::printDrivers() const {
+    std::cout << "Listing drivers, active driver marked with x" << std::endl;
+    int activeDriver;
+    coreSystem->getDriver(&activeDriver);
+    int driverCount;
+    coreSystem->getNumDrivers(&driverCount);
+    for (int i = 0; i < driverCount; ++i) {
+        char name[256];
+        FMOD_GUID guid;
+        int systemRate;
+        FMOD_SPEAKERMODE driverSpeakerMode;
+        int speakerModeChannels;
+        coreSystem->getDriverInfo(i, name, sizeof(name), &guid, &systemRate, &driverSpeakerMode, &speakerModeChannels);
+
+        if (i == activeDriver) {
+            std::cout << "x ";
+        } else {
+            std::cout << "  ";
+        }
+
+        std::cout << "  Mode " << driverSpeakerMode << ", " << systemRate << " Hz, "
+                << speakerModeChannels << " Channels: "
+                << i << ": " << name
+                << std::endl;
+    }
+}
+
+int FmodController::selectOutputDriver(FMOD_SPEAKERMODE speakerMode) {
+    std::cout << "Updating driver, if required ..." << std::endl;
+    int activeDriver;
+    coreSystem->getDriver(&activeDriver);
+    int driverCount;
+    coreSystem->getNumDrivers(&driverCount);
+    char name[256];
+    FMOD_GUID guid;
+    int systemRate;
+    FMOD_SPEAKERMODE driverSpeakerMode;
+    int speakerModeChannels;
+    coreSystem->getDriverInfo(activeDriver, name, sizeof(name), &guid, &systemRate, &driverSpeakerMode, &speakerModeChannels);
+    if (driverSpeakerMode != speakerMode) {
+        std::cout << "Default driver does not match speaker mode, checking for better fit with mode " << speakerMode << std::endl;
+
+        for (int i = 0; i < driverCount; ++i) {
+            coreSystem->getDriverInfo(i, name, sizeof(name), &guid, &systemRate, &driverSpeakerMode,
+                                      &speakerModeChannels);
+            if (driverSpeakerMode == speakerMode) {
+                std::cout << "-> Using driver " << i
+                << "with " << speakerModeChannels << " channels: " << name <<
+                        std::endl;
+                coreSystem->setDriver(i);
+                return i;
+            }
+        }
+    }
+    return -1;
 }
 
 void FmodController::setEventCallback(std::function<void(const std::string &, EventType)> callback) {

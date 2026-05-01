@@ -90,6 +90,11 @@ public:
     bool isPlaying(const std::string &eventId);
 
 private:
+    void printDrivers() const;
+
+    int selectOutputDriver(FMOD_SPEAKERMODE speakerMode);
+
+private:
     static FMOD_RESULT programmerSoundCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type, FMOD_STUDIO_EVENTINSTANCE *event,
                                                void *parameters);
 
