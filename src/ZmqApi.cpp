@@ -115,6 +115,7 @@ void ZmqApi::run(const std::string &repAddress) {
 
 void ZmqApi::run(const std::string &repAddress, const std::string &pubAddress) {
     fmodController.setMarkerCallback([this](const std::string &eventId, const std::string &markerName) {
+        // Put the event into a queue to not interrupt the FMOD thread while sending the ZMQ message
         const auto now = std::chrono::system_clock::now();
         const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
         std::string message = "marker:" + eventId + ";" + markerName + ";t=" + std::to_string(ms);
