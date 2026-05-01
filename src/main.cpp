@@ -60,10 +60,10 @@ int main(int argc, const char *argv[]) {
                 if (arg == "7.1") {
                     speakerMode = FMOD_SPEAKERMODE_7POINT1;
                     speakerModeName = "7.1";
-                } else if (arg=="5.1") {
+                } else if (arg == "5.1") {
                     speakerMode = FMOD_SPEAKERMODE_5POINT1;
                     speakerModeName = "5.1";
-                } else if (arg=="quad") {
+                } else if (arg == "quad") {
                     speakerMode = FMOD_SPEAKERMODE_QUAD;
                     speakerModeName = "Quad";
                 } else if (arg == "stereo") {
@@ -100,9 +100,9 @@ int main(int argc, const char *argv[]) {
     }
 
     std::cout << "Starting with:" << std::endl
-              << "* Sample rate " << sampleRate << std::endl
-              << "* Speaker mode " << speakerModeName << std::endl
-              << "* Live update " << (liveUpdate ? "enabled" : "disabled") << std::endl;
+            << "· Sample rate " << sampleRate << std::endl
+            << "· Speaker mode " << speakerModeName << std::endl
+            << "· Live update " << (liveUpdate ? "enabled" : "disabled") << std::endl;
 
     const FmodController fmodController(sampleRate, speakerMode, liveUpdate, rawSpeakerCount);
 
