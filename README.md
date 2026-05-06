@@ -13,7 +13,8 @@ parameters.
 ## Compiling
 
 You need the FMOD Studio API (only available to registered users); unpack it to
-`lib/` so it contains an `fmodstudioapi20203linux` directory.
+`lib/` so it contains an `fmodstudioapi20313linux` (or similar) directory.
+Check `FMOD_VERSION` in the CMakeLists.txt to see the exact required version. 
 
 The `cppzmq` submodule should be checked out in the `lib/` directory as well.
 
@@ -28,6 +29,7 @@ Some defaults in `/usr/share/alsa/alsa.conf`
 
 Other defaults in `/etc/asound.conf`
 
+Modern systems use PipeWire; check that for configuration.
 
 [so]: https://raspberrypi.stackexchange.com/questions/80072/how-can-i-use-an-external-usb-sound-card-and-set-it-as-default/80075#80075
 
@@ -35,6 +37,7 @@ Other defaults in `/etc/asound.conf`
 ## Release Notes
 
 * Upcoming
+* **v2.0.0** (2026-05-06)
   * Added: Timeline marker events are now emitted on a separate `PUB/SUB` ZermoMQ socket,
     which by default listens on port `3001`.
   * Added: On startup, choose the best matching driver for the selected speaker mode.
